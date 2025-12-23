@@ -1,0 +1,98 @@
+'use client';
+
+import React from 'react';
+import { X } from 'lucide-react';
+
+interface AddGroupModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const AddGroupModal: React.FC<AddGroupModalProps> = ({ isOpen, onClose }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-md">
+      <div className="bg-slate-900 w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden border-2 border-slate-700 relative animate-in zoom-in-95 duration-200">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/10 rounded-full -mr-16 -mt-16 blur-3xl"></div>
+        
+        <div className="flex justify-between items-center px-8 py-7 border-b border-slate-800 bg-slate-900/50">
+          <div>
+            <h2 className="text-2xl font-black text-white tracking-tight">新增團體行程</h2>
+            <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em] mt-1">Create New Tour</p>
+          </div>
+          <button 
+            onClick={onClose}
+            className="p-3 bg-slate-800 hover:bg-slate-700 rounded-2xl transition-all border border-slate-700 active:scale-90"
+          >
+            <X className="w-6 h-6 text-slate-400" />
+          </button>
+        </div>
+        
+        <form className="p-8 space-y-6" onSubmit={(e) => e.preventDefault()}>
+          <div className="space-y-2">
+            <label className="block text-xs font-black text-slate-500 uppercase tracking-widest ml-1">團體名稱</label>
+            <input 
+              type="text" 
+              placeholder="例如：日本關西五日賞楓團"
+              className="w-full px-6 py-4 bg-slate-950 border-2 border-slate-800 rounded-2xl focus:outline-none focus:border-blue-500 text-lg font-bold text-white transition-all placeholder:text-slate-700 shadow-inner"
+            />
+          </div>
+          
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="block text-xs font-black text-slate-500 uppercase tracking-widest ml-1">開始日期</label>
+              <input 
+                type="date" 
+                className="w-full px-6 py-4 bg-slate-950 border-2 border-slate-800 rounded-2xl focus:outline-none focus:border-blue-500 text-lg font-bold text-white transition-all shadow-inner [color-scheme:dark]"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-xs font-black text-slate-500 uppercase tracking-widest ml-1">結束日期</label>
+              <input 
+                type="date" 
+                className="w-full px-6 py-4 bg-slate-950 border-2 border-slate-800 rounded-2xl focus:outline-none focus:border-blue-500 text-lg font-bold text-white transition-all shadow-inner [color-scheme:dark]"
+              />
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <label className="block text-xs font-black text-slate-500 uppercase tracking-widest ml-1">主要地點</label>
+            <input 
+              type="text" 
+              placeholder="例如：京都、大阪"
+              className="w-full px-6 py-4 bg-slate-950 border-2 border-slate-800 rounded-2xl focus:outline-none focus:border-blue-500 text-lg font-bold text-white transition-all placeholder:text-slate-700 shadow-inner"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <label className="block text-xs font-black text-slate-500 uppercase tracking-widest ml-1">預計團員人數</label>
+            <input 
+              type="number" 
+              placeholder="20"
+              className="w-full px-6 py-4 bg-slate-950 border-2 border-slate-800 rounded-2xl focus:outline-none focus:border-blue-500 text-lg font-bold text-white transition-all placeholder:text-slate-700 shadow-inner"
+            />
+          </div>
+          
+          <div className="pt-6 flex gap-4">
+            <button 
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-6 py-5 bg-slate-800 text-slate-400 font-black rounded-2xl hover:bg-slate-700 hover:text-white transition-all border-2 border-slate-700 active:scale-95 uppercase tracking-widest text-sm"
+            >
+              取消
+            </button>
+            <button 
+              type="submit"
+              className="flex-1 px-6 py-5 bg-blue-600 text-white font-black rounded-2xl hover:bg-blue-500 transition-all shadow-xl shadow-blue-900/40 border-2 border-blue-400 active:scale-95 uppercase tracking-widest text-sm"
+            >
+              確認新增
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default AddGroupModal;
