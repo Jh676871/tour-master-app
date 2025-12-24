@@ -15,7 +15,8 @@ import {
   Hotel,
   Save,
   Search,
-  User
+  User,
+  Clock
 } from 'lucide-react';
 import Link from 'next/link';
 import * as XLSX from 'xlsx';
@@ -256,6 +257,56 @@ export default function TravelersPage() {
             </div>
           </div>
         </div>
+
+        {/* Selected Itinerary Summary (Admin View) */}
+        {selectedItineraryId && itineraries.find(i => i.id === selectedItineraryId) && (
+          <div className="bg-blue-600/10 border-2 border-blue-500/20 rounded-[2rem] p-6 animate-in fade-in slide-in-from-top-4 duration-500">
+            {(() => {
+              const itin = itineraries.find(i => i.id === selectedItineraryId)!;
+              return (
+                <div className="flex flex-wrap items-center gap-8">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-blue-600 text-white w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl">
+                      {itineraries.indexOf(itin) + 1}
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest">當前選取日期</p>
+                      <h3 className="text-xl font-black">{itin.trip_date}</h3>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-6">
+                    {itin.morning_call_time && (
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-5 h-5 text-orange-400" />
+                        <div>
+                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">Morning Call</p>
+                          <p className="font-bold text-lg">{itin.morning_call_time}</p>
+                        </div>
+                      </div>
+                    )}
+                    {itin.meeting_time && (
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-5 h-5 text-green-400" />
+                        <div>
+                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">集合時間</p>
+                          <p className="font-bold text-lg">{itin.meeting_time}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {itin.schedule_text && (
+                    <div className="flex-1 min-w-[200px] border-l-2 border-slate-800 pl-6">
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">今日行程摘要</p>
+                      <p className="text-sm font-bold text-slate-400 line-clamp-2">{itin.schedule_text}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        )}
 
         {/* Travelers Table */}
         <div className="bg-slate-900 border border-slate-800 rounded-[2.5rem] shadow-xl overflow-hidden">

@@ -23,7 +23,9 @@ export default function TravelerLIFFPage() {
   const [liffLoading, setLiffLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [traveler, setTraveler] = useState<Traveler | null>(null);
+  const [itineraries, setItineraries] = useState<(Itinerary & { hotel: Hotel | null })[]>([]);
   const [currentItinerary, setCurrentItinerary] = useState<(Itinerary & { hotel: Hotel }) | null>(null);
+  const [roomMappings, setRoomMappings] = useState<Record<string, string>>({});
   const [currentRoom, setCurrentRoom] = useState<string>('');
   const [binding, setBinding] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -78,28 +80,41 @@ export default function TravelerLIFFPage() {
 
     const today = new Date().toISOString().split('T')[0];
     
-    // 1. Fetch itinerary for today (or the closest upcoming one if today is not set)
-    const { data: itineraryData } = await supabase
+    // 1. Fetch ALL itineraries for the group
+    const { data: allItineraries } = await supabase
       .from('itineraries')
       .select('*, hotel:hotels(*)')
       .eq('group_id', groupId)
-      .gte('trip_date', today)
-      .order('trip_date', { ascending: true })
-      .limit(1)
-      .single();
+      .order('trip_date', { ascending: true });
 
-    if (itineraryData) {
-      setCurrentItinerary(itineraryData as any);
+    if (allItineraries) {
+      setItineraries(allItineraries as any);
       
-      // 2. Fetch room number for this itinerary
-      const { data: roomData } = await supabase
+      // Find today's or next available itinerary
+      const todayItin = allItineraries.find(it => it.trip_date >= today) || allItineraries[allItineraries.length - 1];
+      if (todayItin) {
+        setCurrentItinerary(todayItin as any);
+      }
+
+      // 2. Fetch ALL room numbers for this traveler in this group
+      const itinIds = allItineraries.map(it => it.id);
+      const { data: roomsData } = await supabase
         .from('traveler_rooms')
-        .select('room_number')
+        .select('itinerary_id, room_number')
         .eq('traveler_id', travelerId)
-        .eq('itinerary_id', itineraryData.id)
-        .single();
+        .in('itinerary_id', itinIds);
       
-      if (roomData) setCurrentRoom(roomData.room_number);
+      if (roomsData) {
+        const mapping: Record<string, string> = {};
+        roomsData.forEach(r => {
+          mapping[r.itinerary_id] = r.room_number;
+        });
+        setRoomMappings(mapping);
+
+        if (todayItin && mapping[todayItin.id]) {
+          setCurrentRoom(mapping[todayItin.id]);
+        }
+      }
     }
   };
 
@@ -312,6 +327,67 @@ export default function TravelerLIFFPage() {
             <button onClick={() => currentItinerary?.hotel?.wifi_info && copyToClipboard(currentItinerary.hotel.wifi_info)} className="p-2 bg-slate-800 text-slate-500 rounded-lg">
               <Copy className="w-4 h-4" />
             </button>
+          </div>
+        </div>
+
+        {/* Full Itinerary List */}
+        <div className="space-y-6 pt-4">
+          <div className="flex items-center gap-3 px-2">
+            <Calendar className="w-6 h-6 text-blue-500" />
+            <h3 className="text-xl font-black tracking-tight">完整行程表</h3>
+          </div>
+          
+          <div className="space-y-4">
+            {itineraries.map((itin, index) => (
+              <div 
+                key={itin.id}
+                className={`bg-slate-900/50 border-2 rounded-[2.5rem] p-6 transition-all ${
+                  itin.id === currentItinerary?.id ? 'border-blue-500 bg-blue-500/5' : 'border-slate-800'
+                }`}
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm ${
+                      itin.id === currentItinerary?.id ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400'
+                    }`}>
+                      {index + 1}
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                        {itin.trip_date.split('-').slice(1).join('/')}
+                      </p>
+                      <h4 className="font-black text-lg leading-tight">{itin.hotel?.name || '未設定飯店'}</h4>
+                    </div>
+                  </div>
+                  {roomMappings[itin.id] && (
+                    <div className="bg-blue-600/20 text-blue-400 px-3 py-1 rounded-full text-[10px] font-black border border-blue-500/20 uppercase tracking-widest">
+                      Room {roomMappings[itin.id]}
+                    </div>
+                  )}
+                </div>
+
+                {itin.schedule_text && (
+                  <p className="text-slate-400 text-sm font-medium mb-4 pl-11 line-clamp-2">
+                    {itin.schedule_text}
+                  </p>
+                )}
+
+                <div className="flex gap-4 pl-11">
+                  {itin.morning_call_time && (
+                    <div className="flex items-center gap-1.5 text-[10px] font-black text-orange-400 uppercase tracking-widest">
+                      <Clock className="w-3 h-3" />
+                      MC {itin.morning_call_time}
+                    </div>
+                  )}
+                  {itin.meeting_time && (
+                    <div className="flex items-center gap-1.5 text-[10px] font-black text-green-400 uppercase tracking-widest">
+                      <Clock className="w-3 h-3" />
+                      集合 {itin.meeting_time}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
