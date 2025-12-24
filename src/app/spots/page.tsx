@@ -116,7 +116,7 @@ export default function SpotsPage() {
       <header className="bg-slate-900/50 backdrop-blur-md border-b border-slate-800 sticky top-0 z-30 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/" className="p-2 hover:bg-slate-800 rounded-xl transition-colors">
+            <Link href="/" className="p-3 hover:bg-slate-800 rounded-xl transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center">
               <ArrowLeft className="w-6 h-6 text-slate-400" />
             </Link>
             <div>
@@ -167,20 +167,20 @@ export default function SpotsPage() {
                 </div>
                 <button 
                   onClick={() => handleDeleteSpot(spot.id)}
-                  className="absolute top-4 right-4 p-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-xl transition-all opacity-0 group-hover:opacity-100 backdrop-blur-md"
+                  className="absolute top-4 right-4 p-3 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-xl transition-all opacity-0 group-hover:opacity-100 backdrop-blur-md min-w-[48px] min-h-[48px] flex items-center justify-center"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-5 h-5" />
                 </button>
               </div>
               
               <div className="p-6 flex-1 flex flex-col">
-                <h3 className="text-xl font-black mb-2 group-hover:text-blue-400 transition-colors">{spot.name}</h3>
+                <h3 className="text-xl font-black mb-2 group-hover:text-blue-400 transition-colors leading-relaxed">{spot.name}</h3>
                 <div className="flex items-start gap-2 text-slate-500 text-sm font-bold mb-4">
-                  <MapPin className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-                  <span className="line-clamp-2">{spot.address || '未提供地址'}</span>
+                  <MapPin className="w-4 h-4 text-blue-500 shrink-0 mt-1" />
+                  <span className="line-clamp-2 leading-relaxed">{spot.address || '未提供地址'}</span>
                 </div>
                 
-                <p className="text-slate-400 text-sm font-medium line-clamp-3 mb-6 flex-1">
+                <p className="text-slate-400 text-sm font-medium line-clamp-3 mb-6 flex-1 leading-loose">
                   {spot.description || '暫無景點描述...'}
                 </p>
 
@@ -190,13 +190,13 @@ export default function SpotsPage() {
                       href={spot.google_map_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex-1 flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-2xl font-black text-xs transition-all"
+                      className="flex-1 flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white py-4 rounded-2xl font-black text-xs transition-all min-h-[48px]"
                     >
                       <Navigation className="w-4 h-4 text-blue-400" />
                       地圖導航
                     </a>
                   )}
-                  <button className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-2xl transition-all">
+                  <button className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-2xl transition-all min-w-[48px] min-h-[48px] flex items-center justify-center">
                     <ImageIcon className="w-5 h-5" />
                   </button>
                 </div>

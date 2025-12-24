@@ -560,67 +560,128 @@ export default function TravelersPage() {
               <p className="mt-4 text-slate-500 font-bold">載入名單中...</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-slate-950/50">
-                    <th className="px-8 py-5 text-left text-xs font-black text-slate-500 uppercase tracking-widest">旅客姓名</th>
-                    <th className="px-8 py-5 text-left text-xs font-black text-slate-500 uppercase tracking-widest">房號設定</th>
-                    <th className="px-8 py-5 text-left text-xs font-black text-slate-500 uppercase tracking-widest">性別/飲食</th>
-                    <th className="px-8 py-5 text-right text-xs font-black text-slate-500 uppercase tracking-widest">操作</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800">
-                  {filteredTravelers.map(t => (
-                    <tr key={t.id} className="hover:bg-slate-800/30 transition-colors">
-                      <td className="px-8 py-6 font-bold text-lg">{t.full_name}</td>
-                      <td className="px-8 py-6">
-                        <input 
-                          type="text"
-                          value={roomMappings[t.id] || ''}
-                          onChange={(e) => handleRoomChange(t.id, e.target.value)}
-                          placeholder="請輸入房號"
-                          disabled={!selectedItineraryId}
-                          className="bg-slate-950 border-2 border-slate-800 rounded-xl px-4 py-2 focus:border-blue-500 focus:outline-none font-bold w-32 disabled:opacity-50"
-                        />
-                      </td>
-                      <td className="px-8 py-6">
-                        <div className="flex flex-wrap gap-1.5 max-w-md">
-                          {DIETARY_OPTIONS.map(option => {
-                            const isSelected = t.dietary_needs?.includes(option) || (option === '無' && (t.dietary_needs === '無' || !t.dietary_needs));
-                            return (
-                              <button
-                                key={option}
-                                onClick={() => toggleDietaryTag(t, option)}
-                                className={`px-3 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all border touch-manipulation min-w-[48px] min-h-[48px] flex items-center justify-center ${
-                                  isSelected 
-                                    ? 'bg-blue-600 border-blue-400 text-white' 
-                                    : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-600'
-                                }`}
-                              >
-                                {option}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        <div className="mt-2 flex items-center gap-2">
-                          <span className="bg-slate-800 px-2 py-0.5 rounded text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t.gender}</span>
-                          <span className="text-[10px] font-bold text-slate-600">目前設定: {t.dietary_needs || '無'}</span>
-                        </div>
-                      </td>
-                      <td className="px-8 py-6 text-right">
-                        <button 
-                          onClick={() => handleDeleteTraveler(t.id)}
-                          className="p-2 text-slate-600 hover:text-red-500 transition-colors"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </td>
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-slate-950/50">
+                      <th className="px-8 py-5 text-left text-xs font-black text-slate-500 uppercase tracking-widest">旅客姓名</th>
+                      <th className="px-8 py-5 text-left text-xs font-black text-slate-500 uppercase tracking-widest">房號設定</th>
+                      <th className="px-8 py-5 text-left text-xs font-black text-slate-500 uppercase tracking-widest">性別/飲食</th>
+                      <th className="px-8 py-5 text-right text-xs font-black text-slate-500 uppercase tracking-widest">操作</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800">
+                    {filteredTravelers.map(t => (
+                      <tr key={t.id} className="hover:bg-slate-800/30 transition-colors">
+                        <td className="px-8 py-6 font-bold text-lg">{t.full_name}</td>
+                        <td className="px-8 py-6">
+                          <input 
+                            type="text"
+                            value={roomMappings[t.id] || ''}
+                            onChange={(e) => handleRoomChange(t.id, e.target.value)}
+                            placeholder="請輸入房號"
+                            disabled={!selectedItineraryId}
+                            className="bg-slate-950 border-2 border-slate-800 rounded-xl px-4 py-2 focus:border-blue-500 focus:outline-none font-bold w-32 disabled:opacity-50"
+                          />
+                        </td>
+                        <td className="px-8 py-6">
+                          <div className="flex flex-wrap gap-1.5 max-w-md">
+                            {DIETARY_OPTIONS.map(option => {
+                              const isSelected = t.dietary_needs?.includes(option) || (option === '無' && (t.dietary_needs === '無' || !t.dietary_needs));
+                              return (
+                                <button
+                                  key={option}
+                                  onClick={() => toggleDietaryTag(t, option)}
+                                  className={`px-3 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all border touch-manipulation min-w-[48px] min-h-[48px] flex items-center justify-center ${
+                                    isSelected 
+                                      ? 'bg-blue-600 border-blue-400 text-white' 
+                                      : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-600'
+                                  }`}
+                                >
+                                  {option}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <div className="mt-2 flex items-center gap-2">
+                            <span className="bg-slate-800 px-2 py-0.5 rounded text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t.gender}</span>
+                            <span className="text-[10px] font-bold text-slate-600">目前設定: {t.dietary_needs || '無'}</span>
+                          </div>
+                        </td>
+                        <td className="px-8 py-6 text-right">
+                          <button 
+                            onClick={() => handleDeleteTraveler(t.id)}
+                            className="p-2 text-slate-600 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="md:hidden p-4 space-y-4">
+                {filteredTravelers.map(t => (
+                  <div key={t.id} className="bg-slate-950 border border-slate-800 rounded-2xl p-5 space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <h3 className="text-xl font-black text-white">{t.full_name}</h3>
+                        <div className="flex items-center gap-2">
+                          <span className="bg-slate-800 px-2 py-0.5 rounded text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t.gender}</span>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => handleDeleteTraveler(t.id)}
+                        className="p-3 text-slate-600 hover:text-red-500 transition-colors bg-slate-900 rounded-xl min-w-[48px] min-h-[48px] flex items-center justify-center"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    {/* Room Number Input */}
+                    <div className="bg-slate-900 p-3 rounded-xl border border-slate-800">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 block">房號設定</label>
+                      <input 
+                        type="text"
+                        value={roomMappings[t.id] || ''}
+                        onChange={(e) => handleRoomChange(t.id, e.target.value)}
+                        placeholder="請輸入房號"
+                        disabled={!selectedItineraryId}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 focus:border-blue-500 focus:outline-none font-bold text-sm disabled:opacity-50"
+                      />
+                    </div>
+
+                    {/* Dietary Options */}
+                    <div>
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">飲食需求</label>
+                      <div className="flex flex-wrap gap-2">
+                        {DIETARY_OPTIONS.map(option => {
+                          const isSelected = t.dietary_needs?.includes(option) || (option === '無' && (t.dietary_needs === '無' || !t.dietary_needs));
+                          return (
+                            <button
+                              key={option}
+                              onClick={() => toggleDietaryTag(t, option)}
+                              className={`px-3 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all border touch-manipulation min-w-[48px] min-h-[48px] flex items-center justify-center ${
+                                isSelected 
+                                  ? 'bg-blue-600 border-blue-400 text-white' 
+                                  : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-600'
+                              }`}
+                            >
+                              {option}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
       </div>

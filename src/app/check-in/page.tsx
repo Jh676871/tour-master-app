@@ -321,7 +321,7 @@ export default function CheckInPage() {
                         <button
                           onClick={() => handleNudge(traveler)}
                           disabled={nudging === traveler.id}
-                          className={`w-14 h-[42px] rounded-[1.5rem] flex items-center justify-center transition-all active:scale-90 border-2 ${
+                          className={`w-14 h-12 rounded-[1.5rem] flex items-center justify-center transition-all active:scale-90 border-2 ${
                             traveler.line_uid 
                               ? 'bg-orange-500/10 border-orange-500/30 text-orange-400 hover:bg-orange-500/20' 
                               : 'bg-slate-800/50 border-slate-700 text-slate-600 cursor-not-allowed'
@@ -339,7 +339,7 @@ export default function CheckInPage() {
                         <button
                           onClick={() => sendRoomInfo(traveler)}
                           disabled={sendingRoom === traveler.id}
-                          className={`w-14 h-[40px] rounded-[1.5rem] flex items-center justify-center transition-all active:scale-90 border-2 ${
+                          className={`w-14 h-12 rounded-[1.5rem] flex items-center justify-center transition-all active:scale-90 border-2 ${
                             traveler.line_uid 
                               ? 'bg-blue-500/10 border-blue-500/30 text-blue-400 hover:bg-blue-500/20' 
                               : 'bg-slate-800/50 border-slate-700 text-slate-600 cursor-not-allowed'

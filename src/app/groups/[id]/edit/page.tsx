@@ -954,16 +954,16 @@ export default function GroupEditPage() {
                                 <button 
                                   onClick={() => handleMoveSpot(itinSpot.spot_id, 'up')}
                                   disabled={idx === 0}
-                                  className="p-1 hover:bg-slate-800 rounded-md text-slate-600 hover:text-blue-400 disabled:opacity-0 transition-all"
+                                  className="w-10 h-10 flex items-center justify-center hover:bg-slate-800 rounded-xl text-slate-600 hover:text-blue-400 disabled:opacity-0 transition-all"
                                 >
-                                  <ChevronLeft className="w-4 h-4 rotate-90" />
+                                  <ChevronLeft className="w-5 h-5 rotate-90" />
                                 </button>
                                 <button 
                                   onClick={() => handleMoveSpot(itinSpot.spot_id, 'down')}
                                   disabled={idx === (itinerarySpots[currentItinerary.id]?.length || 0) - 1}
-                                  className="p-1 hover:bg-slate-800 rounded-md text-slate-600 hover:text-blue-400 disabled:opacity-0 transition-all"
+                                  className="w-10 h-10 flex items-center justify-center hover:bg-slate-800 rounded-xl text-slate-600 hover:text-blue-400 disabled:opacity-0 transition-all"
                                 >
-                                  <ChevronLeft className="w-4 h-4 -rotate-90" />
+                                  <ChevronLeft className="w-5 h-5 -rotate-90" />
                                 </button>
                               </div>
                               
@@ -1224,9 +1224,9 @@ export default function GroupEditPage() {
                                 const newIds = table.traveler_ids.filter((id: string) => id !== tid);
                                 handleUpdateTable(table.id, { traveler_ids: newIds });
                               }}
-                              className="opacity-0 group-hover/item:opacity-100 p-1 hover:text-red-500 transition-all"
+                              className="opacity-0 group-hover/item:opacity-100 w-8 h-8 flex items-center justify-center hover:text-red-500 transition-all"
                             >
-                              <Trash2 className="w-3 h-3" />
+                              <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
                         );

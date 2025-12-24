@@ -232,14 +232,14 @@ export default function HotelsPage() {
       <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-30 backdrop-blur-md bg-opacity-90">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/" className="p-2 hover:bg-slate-800 rounded-full transition-colors">
+            <Link href="/" className="p-3 hover:bg-slate-800 rounded-full transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center">
               <ArrowLeft className="w-6 h-6" />
             </Link>
             <h1 className="text-xl font-black uppercase tracking-widest">飯店資料庫</h1>
           </div>
           <button 
             onClick={() => handleOpenModal()}
-            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl font-black transition-all flex items-center gap-2 text-sm"
+            className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-black transition-all flex items-center gap-2 text-sm min-h-[48px]"
           >
             <Plus className="w-5 h-5" />
             新增飯店
@@ -336,7 +336,7 @@ export default function HotelsPage() {
                       href={hotel.google_map_url} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 w-full bg-slate-800 hover:bg-slate-700 py-3 rounded-xl text-xs font-black transition-all"
+                      className="flex items-center justify-center gap-2 w-full bg-slate-800 hover:bg-slate-700 py-4 rounded-xl text-xs font-black transition-all min-h-[48px]"
                     >
                       <ExternalLink className="w-3 h-3" />
                       GOOGLE MAPS 導航
