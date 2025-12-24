@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { CheckCircle2, Circle, ArrowLeft, Loader2, Search, MapPin, Users } from 'lucide-react';
+import { CheckCircle2, Circle, ArrowLeft, Loader2, Search, MapPin, Users, Bell, Send, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 
 interface Traveler {
@@ -11,6 +11,7 @@ interface Traveler {
   room_number: string;
   gender: string;
   dietary_needs: string;
+  line_uid?: string;
 }
 
 export default function CheckInPage() {
@@ -19,34 +20,53 @@ export default function CheckInPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [locationName, setLocationName] = useState('集合點');
+  const [nudging, setNudging] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
+
+    // Subscribe to realtime check_ins changes
+    const channel = supabase
+      .channel('public:check_ins')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'check_ins' }, (payload) => {
+        console.log('Realtime change received:', payload);
+        if (payload.eventType === 'INSERT') {
+          setCheckedIds(prev => new Set([...prev, payload.new.traveler_id]));
+        } else if (payload.eventType === 'DELETE') {
+          setCheckedIds(prev => {
+            const next = new Set(prev);
+            next.delete(payload.old.traveler_id);
+            return next;
+          });
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      // Use select('*') to avoid 400 errors on missing columns
-      // Order by created_at or id which are standard
       const { data: rawData, error: fetchError } = await supabase
         .from('travelers')
         .select('*');
 
       if (fetchError) throw fetchError;
 
-      // Robust mapping logic to handle varying column names
       const mappedTravelers = (rawData || []).map(t => {
         return {
           id: t.id,
           full_name: t.full_name || t.name || '未名',
           room_number: String(t.room_number || t.room_no || t.room || ''),
           gender: t.gender || '未指定',
-          dietary_needs: t.dietary_needs || t.diet || '無'
+          dietary_needs: t.dietary_needs || t.diet || '無',
+          line_uid: t.line_uid
         } as Traveler;
       });
 
-      // Sort in JS to avoid database errors on missing order columns
       const sortedTravelers = [...mappedTravelers].sort((a, b) => 
         a.room_number.localeCompare(b.room_number, undefined, { numeric: true })
       );
@@ -69,6 +89,8 @@ export default function CheckInPage() {
 
   const toggleCheckIn = async (travelerId: string) => {
     const isChecked = checkedIds.has(travelerId);
+    
+    // Optimistic update
     const newCheckedIds = new Set(checkedIds);
     if (isChecked) {
       newCheckedIds.delete(travelerId);
@@ -89,7 +111,6 @@ export default function CheckInPage() {
         
         if (error) {
           if (error.message.includes('column') && error.message.includes('location_name')) {
-            console.warn('location_name column missing, retrying without it');
             const { error: retryError } = await supabase
               .from('check_ins')
               .insert([{ traveler_id: travelerId }]);
@@ -101,8 +122,35 @@ export default function CheckInPage() {
       }
     } catch (error) {
       console.error('Error toggling check-in:', error);
-      setCheckedIds(checkedIds);
+      // Revert optimistic update
+      fetchData();
       alert('操作失敗，請稍後再試');
+    }
+  };
+
+  const handleNudge = async (traveler: Traveler) => {
+    if (!traveler.line_uid) {
+      alert('該旅客尚未綁定 LINE！');
+      return;
+    }
+
+    setNudging(traveler.id);
+    try {
+      const response = await fetch('/api/line/push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: traveler.line_uid,
+          message: '【重要提醒】集合時間已到，請儘速回報位置！領隊正在集合點等候大家。'
+        })
+      });
+
+      if (!response.ok) throw new Error('發送失敗');
+      alert(`已成功發送提醒給 ${traveler.full_name}！`);
+    } catch (error: any) {
+      alert(`發送失敗：${error.message}`);
+    } finally {
+      setNudging(null);
     }
   };
 
@@ -110,6 +158,9 @@ export default function CheckInPage() {
     t.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     t.room_number.includes(searchTerm)
   );
+
+  const checkedInTravelers = filteredTravelers.filter(t => checkedIds.has(t.id));
+  const notCheckedInTravelers = filteredTravelers.filter(t => !checkedIds.has(t.id));
 
   const checkedCount = checkedIds.size;
   const totalCount = travelers.length;
@@ -184,66 +235,116 @@ export default function CheckInPage() {
             <p className="font-bold text-xl uppercase tracking-widest">名單載入中</p>
           </div>
         ) : filteredTravelers.length > 0 ? (
-          <div className="grid gap-3">
-            {filteredTravelers.map((traveler) => {
-              const isChecked = checkedIds.has(traveler.id);
-              return (
-                <button 
-                  key={traveler.id}
-                  onClick={() => toggleCheckIn(traveler.id)}
-                  className={`flex items-center justify-between p-5 rounded-[1.5rem] border-2 transition-all active:scale-[0.96] ${
-                    isChecked 
-                      ? 'bg-blue-600 border-blue-400 shadow-[0_10px_30px_rgba(37,99,235,0.2)] z-10' 
-                      : 'bg-slate-800 border-slate-700 hover:border-slate-600'
-                  }`}
-                >
-                  <div className="flex items-center gap-5">
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl transition-all shadow-lg ${
-                      isChecked ? 'bg-blue-500 text-white scale-110' : 'bg-slate-700 text-slate-400'
-                    }`}>
-                      {traveler.full_name.charAt(0)}
-                    </div>
-                    <div className="text-left">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <div className={`font-black text-xl tracking-tight ${isChecked ? 'text-white' : 'text-slate-100'}`}>
-                          {traveler.full_name}
-                        </div>
-                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${
-                          isChecked 
-                            ? 'bg-white/20 text-white border-white/30' 
-                            : traveler.gender === '女' 
-                              ? 'bg-pink-500/10 text-pink-400 border-pink-500/20' 
-                              : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                        }`}>
-                          {traveler.gender}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <div className={`font-bold text-xs px-2 py-0.5 rounded-full ${
-                          isChecked ? 'bg-blue-700 text-blue-100' : 'bg-slate-900 text-slate-400'
-                        }`}>
-                          房號 {traveler.room_number}
-                        </div>
-                        {traveler.dietary_needs && traveler.dietary_needs !== '無' && (
-                          <div className={`font-bold text-xs px-2 py-0.5 rounded-full ${
-                            isChecked ? 'bg-orange-500 text-white' : 'bg-orange-500/10 text-orange-400 border border-orange-500/20'
-                          }`}>
-                            {traveler.dietary_needs}
+          <div className="space-y-10">
+            {/* 未報到區域 */}
+            {notCheckedInTravelers.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between px-2">
+                  <h2 className="text-lg font-black text-orange-400 flex items-center gap-2">
+                    <Bell className="w-5 h-5 animate-bounce" /> 未報到 ({notCheckedInTravelers.length})
+                  </h2>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Pending</span>
+                </div>
+                <div className="grid gap-3">
+                  {notCheckedInTravelers.map((traveler) => (
+                    <div 
+                      key={traveler.id}
+                      className="flex items-center gap-3"
+                    >
+                      <button 
+                        onClick={() => toggleCheckIn(traveler.id)}
+                        className="flex-1 flex items-center justify-between p-5 rounded-[1.5rem] border-2 bg-slate-800 border-slate-700 hover:border-slate-600 transition-all active:scale-[0.96]"
+                      >
+                        <div className="flex items-center gap-5">
+                          <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl transition-all shadow-lg bg-slate-700 text-slate-400">
+                            {traveler.full_name.charAt(0)}
                           </div>
+                          <div className="text-left">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <div className="font-black text-xl tracking-tight text-slate-100">
+                                {traveler.full_name}
+                              </div>
+                              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${
+                                traveler.gender === '女' 
+                                  ? 'bg-pink-500/10 text-pink-400 border-pink-500/20' 
+                                  : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                              }`}>
+                                {traveler.gender}
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <div className="font-bold text-xs px-2 py-0.5 rounded-full bg-slate-900 text-slate-400">
+                                房號 {traveler.room_number}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <Circle className="w-8 h-8 text-slate-600" />
+                      </button>
+
+                      {/* 催促按鈕 */}
+                      <button
+                        onClick={() => handleNudge(traveler)}
+                        disabled={nudging === traveler.id}
+                        className={`w-14 h-[84px] rounded-[1.5rem] flex items-center justify-center transition-all active:scale-90 border-2 ${
+                          traveler.line_uid 
+                            ? 'bg-orange-500/10 border-orange-500/30 text-orange-400 hover:bg-orange-500/20' 
+                            : 'bg-slate-800/50 border-slate-700 text-slate-600 cursor-not-allowed'
+                        }`}
+                        title={traveler.line_uid ? "一鍵催促" : "尚未綁定 LINE"}
+                      >
+                        {nudging === traveler.id ? (
+                          <Loader2 className="w-6 h-6 animate-spin" />
+                        ) : (
+                          <Send className="w-6 h-6" />
                         )}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 已報到區域 */}
+            {checkedInTravelers.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between px-2">
+                  <h2 className="text-lg font-black text-green-400 flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5" /> 已報到 ({checkedInTravelers.length})
+                  </h2>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Completed</span>
+                </div>
+                <div className="grid gap-3 opacity-80">
+                  {checkedInTravelers.map((traveler) => (
+                    <button 
+                      key={traveler.id}
+                      onClick={() => toggleCheckIn(traveler.id)}
+                      className="flex items-center justify-between p-5 rounded-[1.5rem] border-2 bg-blue-600 border-blue-400 shadow-[0_10px_30px_rgba(37,99,235,0.1)] transition-all active:scale-[0.96]"
+                    >
+                      <div className="flex items-center gap-5">
+                        <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl transition-all shadow-lg bg-blue-500 text-white">
+                          {traveler.full_name.charAt(0)}
+                        </div>
+                        <div className="text-left">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <div className="font-black text-xl tracking-tight text-white">
+                              {traveler.full_name}
+                            </div>
+                            <span className="text-[10px] font-black px-2 py-0.5 rounded-full border bg-white/20 text-white border-white/30">
+                              {traveler.gender}
+                            </span>
+                          </div>
+                          <div className="font-bold text-xs px-2 py-0.5 rounded-full bg-blue-700 text-blue-100 w-fit">
+                            房號 {traveler.room_number}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                  <div className="flex-shrink-0">
-                    <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all ${
-                      isChecked ? 'bg-white border-white' : 'border-slate-600 bg-slate-900'
-                    }`}>
-                      {isChecked && <CheckCircle2 className="w-8 h-8 text-blue-600 fill-current" />}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
+                      <CheckCircle2 className="w-8 h-8 text-white fill-current" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="py-20 text-center bg-slate-800/30 rounded-3xl border-2 border-dashed border-slate-700">

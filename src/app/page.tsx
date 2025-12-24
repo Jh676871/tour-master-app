@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Navigation, Users, CheckSquare, LayoutGrid } from 'lucide-react';
+import { Plus, Navigation, Users, CheckSquare, LayoutGrid, FileText } from 'lucide-react';
 import Link from 'next/link';
 import GroupCard from '@/components/GroupCard';
 import AddGroupModal from '@/components/AddGroupModal';
@@ -98,10 +98,19 @@ export default function Home() {
                 href="/travelers"
                 className="flex flex-col items-center justify-center gap-3 bg-slate-800 hover:bg-slate-700 text-white p-8 rounded-[2.5rem] font-black transition-all shadow-xl border-2 border-slate-700 active:scale-95 group h-44 w-full md:w-44"
               >
-                <div className="bg-blue-600/20 p-3 rounded-2xl group-hover:scale-110 transition-transform">
-                  <Users className="w-8 h-8 text-blue-500" />
+                <div className="bg-white/10 p-3 rounded-2xl group-hover:scale-110 transition-transform">
+                  <Users className="w-8 h-8" />
                 </div>
-                <span className="uppercase tracking-widest text-sm">旅客管理</span>
+                <span className="uppercase tracking-widest text-sm text-center">旅客名單</span>
+              </Link>
+              <Link 
+                href="/report"
+                className="flex flex-col items-center justify-center gap-3 bg-slate-800 hover:bg-slate-700 text-white p-8 rounded-[2.5rem] font-black transition-all shadow-xl border-2 border-slate-700 active:scale-95 group h-44 w-full md:w-44"
+              >
+                <div className="bg-white/10 p-3 rounded-2xl group-hover:scale-110 transition-transform text-purple-400">
+                  <FileText className="w-8 h-8" />
+                </div>
+                <span className="uppercase tracking-widest text-sm text-center">完團報告</span>
               </Link>
             </div>
           </div>
