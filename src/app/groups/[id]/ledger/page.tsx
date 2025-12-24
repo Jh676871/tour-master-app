@@ -507,7 +507,7 @@ export default function LedgerPage() {
 
                 {/* Receipt Upload (Camera) */}
                 <div className="space-y-2">
-                  <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">收據照片 (OCR 自動辨識)</label>
+                  <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">收據照片 (拍照或從相簿)</label>
                   <div 
                     onClick={() => fileInputRef.current?.click()}
                     className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all ${
@@ -518,7 +518,7 @@ export default function LedgerPage() {
                       ref={fileInputRef}
                       type="file" 
                       accept="image/*" 
-                      capture="environment"
+                      // Removed capture="environment" to allow user to choose between Camera and Album in LINE/WebViews
                       className="hidden"
                       onChange={handleFileChange}
                     />
@@ -536,7 +536,7 @@ export default function LedgerPage() {
                     ) : (
                       <div className="flex flex-col items-center gap-2 text-slate-500">
                         <Camera className="w-8 h-8" />
-                        <span className="font-bold">點擊開啟相機或上傳</span>
+                        <span className="font-bold">點擊拍照或上傳圖片</span>
                       </div>
                     )}
                   </div>
