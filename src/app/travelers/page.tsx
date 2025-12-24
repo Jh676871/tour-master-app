@@ -40,46 +40,146 @@ export default function TravelersPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetchInitialData();
+    const controller = new AbortController();
+    
+    const loadInitialData = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('groups')
+          .select('*')
+          .abortSignal(controller.signal);
+          
+        if (data && data.length > 0) {
+          setGroups(data);
+          setSelectedGroupId(data[0].id);
+        }
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          console.error('Error fetching groups:', error.message || error);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadInitialData();
+    return () => controller.abort();
   }, []);
 
   useEffect(() => {
+    const controller = new AbortController();
+
     if (selectedGroupId) {
-      fetchItineraries(selectedGroupId);
-      fetchTravelers(selectedGroupId);
+      const loadGroupData = async () => {
+        try {
+          // Fetch Itineraries
+          const { data: itinData } = await supabase
+            .from('itineraries')
+            .select('*, hotel:hotels(*)')
+            .eq('group_id', selectedGroupId)
+            .order('trip_date', { ascending: true })
+            .abortSignal(controller.signal);
+          
+          if (itinData) {
+            setItineraries(itinData);
+            if (itinData.length > 0) {
+              setSelectedItineraryId(itinData[0].id);
+            } else {
+              setSelectedItineraryId('');
+            }
+          }
+
+          // Fetch Travelers
+          setFetching(true);
+          const { data: travelerData } = await supabase
+            .from('travelers')
+            .select('*')
+            .eq('group_id', selectedGroupId)
+            .order('full_name', { ascending: true })
+            .abortSignal(controller.signal);
+          
+          if (travelerData) setTravelers(travelerData);
+        } catch (error: any) {
+          if (error.name !== 'AbortError') {
+            console.error('Error loading group data:', error.message || error);
+          }
+        } finally {
+          setFetching(false);
+        }
+      };
+
+      loadGroupData();
     }
+
+    return () => controller.abort();
   }, [selectedGroupId]);
 
   useEffect(() => {
+    const controller = new AbortController();
+
     if (selectedItineraryId) {
-      fetchRoomNumbers(selectedItineraryId);
+      const loadRoomNumbers = async () => {
+        try {
+          const { data } = await supabase
+            .from('traveler_rooms')
+            .select('traveler_id, room_number')
+            .eq('itinerary_id', selectedItineraryId)
+            .abortSignal(controller.signal);
+          
+          if (data) {
+            const mapping: Record<string, string> = {};
+            data.forEach(r => {
+              mapping[r.traveler_id] = r.room_number;
+            });
+            setRoomMappings(mapping);
+          }
+        } catch (error: any) {
+          if (error.name !== 'AbortError') {
+            console.error('Error loading room numbers:', error.message || error);
+          }
+        }
+      };
+
+      loadRoomNumbers();
     } else {
       setRoomMappings({});
     }
+
+    return () => controller.abort();
   }, [selectedItineraryId]);
 
-  const fetchInitialData = async () => {
+  const fetchInitialData = async (signal?: AbortSignal) => {
+    // Keep this for manual refresh if needed, but the effect handles initial load
     try {
       setLoading(true);
-      const { data, error } = await supabase.from('groups').select('*');
+      const query = supabase.from('groups').select('*');
+      if (signal) query.abortSignal(signal);
+      
+      const { data } = await query;
       if (data && data.length > 0) {
         setGroups(data);
         setSelectedGroupId(data[0].id);
       }
-    } catch (error) {
-      console.error('Error fetching groups:', error);
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        console.error('Error fetching groups:', error.message || error);
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchItineraries = async (groupId: string) => {
-    const { data } = await supabase
+  const fetchItineraries = async (groupId: string, signal?: AbortSignal) => {
+    const query = supabase
       .from('itineraries')
       .select('*, hotel:hotels(*)')
       .eq('group_id', groupId)
       .order('trip_date', { ascending: true });
     
+    if (signal) query.abortSignal(signal);
+    
+    const { data } = await query;
     if (data) {
       setItineraries(data);
       if (data.length > 0) {
@@ -90,24 +190,30 @@ export default function TravelersPage() {
     }
   };
 
-  const fetchTravelers = async (groupId: string) => {
+  const fetchTravelers = async (groupId: string, signal?: AbortSignal) => {
     setFetching(true);
-    const { data } = await supabase
+    const query = supabase
       .from('travelers')
       .select('*')
       .eq('group_id', groupId)
       .order('full_name', { ascending: true });
     
+    if (signal) query.abortSignal(signal);
+    
+    const { data } = await query;
     if (data) setTravelers(data);
     setFetching(false);
   };
 
-  const fetchRoomNumbers = async (itineraryId: string) => {
-    const { data } = await supabase
+  const fetchRoomNumbers = async (itineraryId: string, signal?: AbortSignal) => {
+    const query = supabase
       .from('traveler_rooms')
       .select('*')
       .eq('itinerary_id', itineraryId);
     
+    if (signal) query.abortSignal(signal);
+    
+    const { data } = await query;
     const mapping: Record<string, string> = {};
     if (data) {
       data.forEach((r: TravelerRoom) => {

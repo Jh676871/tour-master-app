@@ -37,55 +37,68 @@ export default function TravelerLIFFPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
+
+    const initLiff = async () => {
+      try {
+        const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
+        if (!liffId) throw new Error('LIFF ID is missing');
+
+        await liff.init({ liffId });
+
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+
+        const profile = await liff.getProfile();
+        setUserId(profile.userId);
+        await checkBinding(profile.userId, controller.signal);
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          console.error('LIFF Init Error:', err);
+          setError('LINE 登入失敗，請確認在 LINE App 中開啟。');
+        }
+      } finally {
+        setLiffLoading(false);
+      }
+    };
+
     initLiff();
+    return () => controller.abort();
   }, []);
 
-  const initLiff = async () => {
-    try {
-      const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
-      if (!liffId) throw new Error('LIFF ID is missing');
-
-      await liff.init({ liffId });
-      if (!liff.isLoggedIn()) {
-        liff.login();
-        return;
-      }
-
-      const profile = await liff.getProfile();
-      setUserId(profile.userId);
-      await checkBinding(profile.userId);
-    } catch (err: any) {
-      console.error('LIFF Init Error:', err);
-      setError('LINE 登入失敗，請確認在 LINE App 中開啟。');
-    } finally {
-      setLiffLoading(false);
-    }
-  };
-
-  const checkBinding = async (lineUid: string) => {
-    const { data: travelerData } = await supabase
+  const checkBinding = async (lineUid: string, signal?: AbortSignal) => {
+    const query = supabase
       .from('travelers')
       .select('*')
-      .eq('line_uid', lineUid)
-      .single();
+      .eq('line_uid', lineUid);
+    
+    if (signal) query.abortSignal(signal);
+    
+    const { data: travelerData } = await query.single();
 
     if (travelerData) {
       setTraveler(travelerData);
-      await fetchTodayInfo(travelerData.id, travelerData.group_id);
+      await fetchTodayInfo(travelerData.id, travelerData.group_id, signal);
     }
   };
 
-  const fetchTodayInfo = async (travelerId: string, groupId: string | null) => {
+  const fetchTodayInfo = async (travelerId: string, groupId: string | null, signal?: AbortSignal) => {
     if (!groupId) return;
 
     const today = new Date().toISOString().split('T')[0];
     
     // 1. Fetch ALL itineraries for the group
-    const { data: allItineraries } = await supabase
+    const itinQuery = supabase
       .from('itineraries')
       .select('*, hotel:hotels(*)')
       .eq('group_id', groupId)
       .order('trip_date', { ascending: true });
+
+    if (signal) itinQuery.abortSignal(signal);
+    
+    const { data: allItineraries } = await itinQuery;
 
     if (allItineraries) {
       setItineraries(allItineraries as any);
@@ -98,11 +111,15 @@ export default function TravelerLIFFPage() {
 
       // 2. Fetch ALL room numbers for this traveler in this group
       const itinIds = allItineraries.map(it => it.id);
-      const { data: roomsData } = await supabase
+      const roomQuery = supabase
         .from('traveler_rooms')
         .select('itinerary_id, room_number')
         .eq('traveler_id', travelerId)
         .in('itinerary_id', itinIds);
+
+      if (signal) roomQuery.abortSignal(signal);
+      
+      const { data: roomsData } = await roomQuery;
       
       if (roomsData) {
         const mapping: Record<string, string> = {};
@@ -166,6 +183,28 @@ export default function TravelerLIFFPage() {
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const formatTimeWithNextDate = (timeStr: string | null, baseDateStr: string | undefined) => {
+    if (!timeStr || !baseDateStr) return '--:--';
+    
+    // 移除秒 (HH:mm:ss -> HH:mm)
+    const timeParts = timeStr.split(':');
+    const displayTime = timeParts.slice(0, 2).join(':');
+
+    try {
+      // 計算隔天日期 (避免時區問題，使用分段解析)
+      const [y, m, d] = baseDateStr.split('-').map(Number);
+      const dateObj = new Date(y, m - 1, d);
+      dateObj.setDate(dateObj.getDate() + 1);
+      
+      const month = dateObj.getMonth() + 1;
+      const date = dateObj.getDate();
+      
+      return `${month}/${date} ${displayTime}`;
+    } catch (e) {
+      return displayTime;
+    }
   };
 
   if (liffLoading) {
@@ -282,14 +321,14 @@ export default function TravelerLIFFPage() {
                 <Clock className="w-4 h-4" />
                 <span className="text-[10px] font-black uppercase tracking-widest">Morning Call</span>
               </div>
-              <p className="text-2xl font-black">{currentItinerary.morning_call_time || '--:--'}</p>
+              <p className="text-xl font-black">{formatTimeWithNextDate(currentItinerary.morning_call_time, currentItinerary.trip_date)}</p>
             </div>
             <div className="bg-slate-900 border border-slate-800 p-5 rounded-[2rem] space-y-1">
               <div className="flex items-center gap-2 text-green-400">
                 <Clock className="w-4 h-4" />
                 <span className="text-[10px] font-black uppercase tracking-widest">集合時間</span>
               </div>
-              <p className="text-2xl font-black">{currentItinerary.meeting_time || '--:--'}</p>
+              <p className="text-xl font-black">{formatTimeWithNextDate(currentItinerary.meeting_time, currentItinerary.trip_date)}</p>
             </div>
           </div>
         )}
@@ -376,13 +415,13 @@ export default function TravelerLIFFPage() {
                   {itin.morning_call_time && (
                     <div className="flex items-center gap-1.5 text-[10px] font-black text-orange-400 uppercase tracking-widest">
                       <Clock className="w-3 h-3" />
-                      MC {itin.morning_call_time}
+                      MC {formatTimeWithNextDate(itin.morning_call_time, itin.trip_date)}
                     </div>
                   )}
                   {itin.meeting_time && (
                     <div className="flex items-center gap-1.5 text-[10px] font-black text-green-400 uppercase tracking-widest">
                       <Clock className="w-3 h-3" />
-                      集合 {itin.meeting_time}
+                      集合 {formatTimeWithNextDate(itin.meeting_time, itin.trip_date)}
                     </div>
                   )}
                 </div>

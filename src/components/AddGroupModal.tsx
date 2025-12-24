@@ -3,13 +3,16 @@
 import React, { useState } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
 
 interface AddGroupModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
-const AddGroupModal: React.FC<AddGroupModalProps> = ({ isOpen, onClose }) => {
+const AddGroupModal: React.FC<AddGroupModalProps> = ({ isOpen, onClose, onSuccess }) => {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -39,11 +42,21 @@ const AddGroupModal: React.FC<AddGroupModalProps> = ({ isOpen, onClose }) => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes('column "end_date" of relation "groups" does not exist')) {
+          throw new Error('資料庫結構尚未更新，請先執行 SQL 腳本添加 end_date 欄位。');
+        }
+        throw error;
+      }
       
-      onClose();
-      // Reset form
       setFormData({ name: '', start_date: '', end_date: '' });
+      onClose();
+      if (onSuccess) onSuccess();
+      
+      // 跳轉到編輯頁面
+      if (data && data.id) {
+        router.push(`/groups/${data.id}/edit`);
+      }
     } catch (error: any) {
       alert(`新增團體失敗: ${error.message}`);
     } finally {

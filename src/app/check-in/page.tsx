@@ -24,7 +24,8 @@ export default function CheckInPage() {
   const [sendingRoom, setSendingRoom] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchData();
+    const controller = new AbortController();
+    fetchData(controller.signal);
 
     // Subscribe to realtime check_ins changes
     const channel = supabase
@@ -44,16 +45,21 @@ export default function CheckInPage() {
       .subscribe();
 
     return () => {
+      controller.abort();
       supabase.removeChannel(channel);
     };
   }, []);
 
-  const fetchData = async () => {
+  const fetchData = async (signal?: AbortSignal) => {
     try {
       setLoading(true);
-      const { data: rawData, error: fetchError } = await supabase
+      const travelerQuery = supabase
         .from('travelers')
         .select('*');
+      
+      if (signal) travelerQuery.abortSignal(signal);
+
+      const { data: rawData, error: fetchError } = await travelerQuery;
 
       if (fetchError) throw fetchError;
 
@@ -74,15 +80,22 @@ export default function CheckInPage() {
 
       setTravelers(sortedTravelers);
 
-      const { data: checkinsData, error: checkinsError } = await supabase
+      const checkinQuery = supabase
         .from('check_ins')
         .select('traveler_id');
+      
+      if (signal) checkinQuery.abortSignal(signal);
+
+      const { data: checkinsData, error: checkinsError } = await checkinQuery;
 
       if (checkinsError) throw checkinsError;
+      
       const checkedSet = new Set<string>((checkinsData || []).map(c => c.traveler_id));
       setCheckedIds(checkedSet);
     } catch (error: any) {
-      console.error('Error fetching data:', error.message || error);
+      if (error.name !== 'AbortError') {
+        console.error('Error fetching data:', error.message || error);
+      }
     } finally {
       setLoading(false);
     }

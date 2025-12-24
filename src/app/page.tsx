@@ -14,35 +14,71 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchGroups();
+    const controller = new AbortController();
+    fetchGroups(controller.signal);
+    return () => controller.abort();
   }, []);
 
-  const fetchGroups = async () => {
+  const fetchGroups = async (signal?: AbortSignal) => {
     try {
       setLoading(true);
       // Fetch groups and join with traveler counts
-      const { data: groupsData, error: groupsError } = await supabase
+      const query = supabase
         .from('groups')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (groupsError) throw groupsError;
+      if (signal) query.abortSignal(signal);
+      
+      const { data: groupsData, error: groupsError } = await query;
 
-      const groupsWithCounts = await Promise.all((groupsData || []).map(async (group) => {
-        const { count, error: countError } = await supabase
-          .from('travelers')
-          .select('*', { count: 'exact', head: true })
-          .eq('group_id', group.id);
-        
-        return {
-          ...group,
-          memberCount: count || 0
-        };
+      if (groupsError) {
+        console.error('Groups Fetch Error Details:', {
+          message: groupsError.message,
+          details: groupsError.details,
+          hint: groupsError.hint,
+          code: groupsError.code
+        });
+        throw groupsError;
+      }
+
+      if (!groupsData) {
+        setGroups([]);
+        return;
+      }
+
+      const groupsWithCounts = await Promise.all(groupsData.map(async (group) => {
+        try {
+          const travelerQuery = supabase
+            .from('travelers')
+            .select('id', { count: 'exact', head: true })
+            .eq('group_id', group.id);
+          
+          if (signal) travelerQuery.abortSignal(signal);
+          
+          const { count, error: countError } = await travelerQuery;
+          
+          if (countError) {
+            console.warn(`Error fetching count for group ${group.id}:`, countError.message);
+            return { ...group, memberCount: 0 };
+          }
+          
+          return {
+            ...group,
+            memberCount: count || 0
+          };
+        } catch (err: any) {
+          if (err.name === 'AbortError') throw err;
+          console.warn(`Exception fetching count for group ${group.id}:`, err);
+          return { ...group, memberCount: 0 };
+        }
       }));
 
       setGroups(groupsWithCounts);
-    } catch (error) {
-      console.error('Error fetching groups:', error);
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        console.error('Error fetching groups:', error.message || error);
+      }
     } finally {
       setLoading(false);
     }
@@ -205,10 +241,8 @@ export default function Home() {
       {/* Professional Modal */}
       <AddGroupModal 
         isOpen={isModalOpen} 
-        onClose={() => {
-          setIsModalOpen(false);
-          fetchGroups(); // Refresh after adding
-        }} 
+        onClose={() => setIsModalOpen(false)} 
+        onSuccess={fetchGroups}
       />
     </main>
   );

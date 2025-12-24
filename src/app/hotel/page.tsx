@@ -37,44 +37,89 @@ export default function HotelSettingsPage() {
   });
 
   useEffect(() => {
-    fetchInitialData();
+    const controller = new AbortController();
+
+    const loadInitialData = async () => {
+      try {
+        setLoading(true);
+        const [groupsRes, hotelsRes] = await Promise.all([
+          supabase.from('groups').select('*').abortSignal(controller.signal),
+          supabase.from('hotels').select('*').abortSignal(controller.signal)
+        ]);
+
+        if (groupsRes.data) {
+          setGroups(groupsRes.data);
+          if (groupsRes.data.length > 0) {
+            setSelectedGroupId(groupsRes.data[0].id);
+          }
+        }
+        if (hotelsRes.data) setHotels(hotelsRes.data);
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          console.error('Error fetching data:', error.message || error);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadInitialData();
+    return () => controller.abort();
   }, []);
 
   useEffect(() => {
-    if (selectedGroupId) {
-      fetchItineraries(selectedGroupId);
-    }
-  }, [selectedGroupId]);
+    const controller = new AbortController();
 
-  const fetchInitialData = async () => {
-    try {
-      setLoading(true);
-      const [groupsRes, hotelsRes] = await Promise.all([
-        supabase.from('groups').select('*'),
-        supabase.from('hotels').select('*')
-      ]);
-
-      if (groupsRes.data) {
-        setGroups(groupsRes.data);
-        if (groupsRes.data.length > 0) {
-          setSelectedGroupId(groupsRes.data[0].id);
+    const loadItineraries = async () => {
+      if (!selectedGroupId) return;
+      try {
+        const { data } = await supabase
+          .from('itineraries')
+          .select('*, hotel:hotels(*)')
+          .eq('group_id', selectedGroupId)
+          .order('trip_date', { ascending: true })
+          .abortSignal(controller.signal);
+        
+        if (data) setItineraries(data);
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          console.error('Error loading itineraries:', error.message || error);
         }
       }
-      if (hotelsRes.data) setHotels(hotelsRes.data);
-    } catch (error) {
-      console.error('Error fetching data:', error);
+    };
+
+    loadItineraries();
+    return () => controller.abort();
+  }, [selectedGroupId]);
+
+  const fetchInitialData = async (signal?: AbortSignal) => {
+    // Keep for manual refresh
+    try {
+      setLoading(true);
+      const query = supabase.from('groups').select('*');
+      if (signal) query.abortSignal(signal);
+      
+      const { data } = await query;
+      if (data) setGroups(data);
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        console.error('Error fetching data:', error.message || error);
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchItineraries = async (groupId: string) => {
-    const { data, error } = await supabase
+  const fetchItineraries = async (groupId: string, signal?: AbortSignal) => {
+    const query = supabase
       .from('itineraries')
       .select('*, hotel:hotels(*)')
       .eq('group_id', groupId)
       .order('trip_date', { ascending: true });
     
+    if (signal) query.abortSignal(signal);
+    
+    const { data } = await query;
     if (data) setItineraries(data);
   };
 

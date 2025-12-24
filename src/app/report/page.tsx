@@ -42,25 +42,53 @@ export default function TourReportPage() {
   const reportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetchData();
+    const controller = new AbortController();
+
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        // 獲取旅客
+        const { data: travelersData } = await supabase
+          .from('travelers')
+          .select('id, full_name')
+          .abortSignal(controller.signal);
+        setTravelers(travelersData || []);
+
+        // 獲取點名記錄
+        const { data: checkinsData } = await supabase
+          .from('check_ins')
+          .select('traveler_id')
+          .abortSignal(controller.signal);
+        setCheckedIds(new Set((checkinsData || []).map(c => c.traveler_id)));
+
+        // 獲取支出記錄
+        const { data: expensesData } = await supabase
+          .from('tour_expenses')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .abortSignal(controller.signal);
+        setExpenses(expensesData || []);
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          console.error('Error fetching report data:', error);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+    return () => controller.abort();
   }, []);
 
   const fetchData = async () => {
+    // Keep for manual refresh
     try {
       setLoading(true);
-      // 獲取旅客
       const { data: travelersData } = await supabase.from('travelers').select('id, full_name');
       setTravelers(travelersData || []);
-
-      // 獲取點名記錄
-      const { data: checkinsData } = await supabase.from('check_ins').select('traveler_id');
-      setCheckedIds(new Set((checkinsData || []).map(c => c.traveler_id)));
-
-      // 獲取支出記錄
-      const { data: expensesData } = await supabase.from('tour_expenses').select('*').order('created_at', { ascending: false });
-      setExpenses(expensesData || []);
     } catch (error) {
-      console.error('Error fetching report data:', error);
+      console.error(error);
     } finally {
       setLoading(false);
     }

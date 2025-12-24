@@ -52,81 +52,126 @@ export default function GroupEditPage() {
   });
 
   useEffect(() => {
-    if (groupId) {
-      fetchData();
-    }
-  }, [groupId]);
+    const controller = new AbortController();
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      
-      // 1. Fetch Group
-      const { data: groupData } = await supabase.from('groups').select('*').eq('id', groupId).single();
-      if (!groupData) throw new Error('找不到團體資料');
-      setGroup(groupData);
-
-      // 2. Fetch Hotels
-      const { data: hotelsData } = await supabase.from('hotels').select('*').order('name');
-      setHotels(hotelsData || []);
-
-      // 3. Fetch Itineraries
-      const { data: itinerariesData } = await supabase
-        .from('itineraries')
-        .select('*, hotel:hotels(*)')
-        .eq('group_id', groupId)
-        .order('trip_date', { ascending: true });
-      
-      let currentItineraries = itinerariesData || [];
-
-      // 如果沒有行程，根據團體日期自動生成
-      if (currentItineraries.length === 0 && groupData.start_date && groupData.end_date) {
-        const start = new Date(groupData.start_date);
-        const end = new Date(groupData.end_date);
-        const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const fetchData = async () => {
+      try {
+        setLoading(true);
         
-        const newItins = [];
-        for (let i = 0; i < days; i++) {
-          const date = new Date(start);
-          date.setDate(start.getDate() + i);
-          newItins.push({
-            group_id: groupId,
-            trip_date: date.toISOString().split('T')[0],
-            schedule_text: '',
-            morning_call_time: '07:00',
-            meeting_time: '08:00',
-            hotel_id: null
-          });
+        // 1. Fetch Group
+        const { data: groupData } = await supabase
+          .from('groups')
+          .select('*')
+          .eq('id', groupId)
+          .abortSignal(controller.signal)
+          .single();
+          
+        if (!groupData) throw new Error('找不到團體資料');
+        setGroup(groupData);
+
+        // 2. Fetch Hotels
+        const { data: hotelsData } = await supabase
+          .from('hotels')
+          .select('*')
+          .order('name')
+          .abortSignal(controller.signal);
+        setHotels(hotelsData || []);
+
+        // 3. Fetch Itineraries
+        const { data: itinerariesData } = await supabase
+          .from('itineraries')
+          .select('*, hotel:hotels(*)')
+          .eq('group_id', groupId)
+          .order('trip_date', { ascending: true })
+          .abortSignal(controller.signal);
+        
+        let currentItineraries = itinerariesData || [];
+
+        // 如果沒有行程，根據團體日期自動生成
+        if (currentItineraries.length === 0 && groupData.start_date && groupData.end_date) {
+          const start = new Date(groupData.start_date);
+          const end = new Date(groupData.end_date);
+          const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+          
+          const newItins = [];
+          for (let i = 0; i < days; i++) {
+            const date = new Date(start);
+            date.setDate(start.getDate() + i);
+            newItins.push({
+              group_id: groupId,
+              trip_date: date.toISOString().split('T')[0],
+              schedule_text: '',
+              morning_call_time: '07:00',
+              meeting_time: '08:00',
+              hotel_id: null
+            });
+          }
+          
+          const { data: insertedItins } = await supabase
+            .from('itineraries')
+            .insert(newItins)
+            .select()
+            .abortSignal(controller.signal);
+          currentItineraries = insertedItins || [];
         }
         
-        const { data: insertedItins } = await supabase.from('itineraries').insert(newItins).select();
-        currentItineraries = insertedItins || [];
-      }
-      setItineraries(currentItineraries);
+        setItineraries(currentItineraries);
 
-      // 4. Fetch Travelers
-      const { data: travelersData } = await supabase.from('travelers').select('*').eq('group_id', groupId).order('full_name');
-      setTravelers(travelersData || []);
+        // 4. Fetch Travelers
+        const { data: travelersData } = await supabase
+          .from('travelers')
+          .select('*')
+          .eq('group_id', groupId)
+          .order('full_name')
+          .abortSignal(controller.signal);
+        setTravelers(travelersData || []);
 
-      // 5. Fetch All Room Numbers for this group
-      if (currentItineraries.length > 0) {
-        const itinIds = currentItineraries.map(i => i.id);
+        // 5. Fetch Room Mappings
         const { data: roomsData } = await supabase
           .from('traveler_rooms')
           .select('*')
-          .in('itinerary_id', itinIds);
+          .in('itinerary_id', currentItineraries.map((it: any) => it.id).filter(Boolean))
+          .abortSignal(controller.signal);
         
-        const mapping: Record<string, Record<string, string>> = {};
-        roomsData?.forEach(room => {
-          if (!mapping[room.itinerary_id]) mapping[room.itinerary_id] = {};
-          mapping[room.itinerary_id][room.traveler_id] = room.room_number;
-        });
-        setRoomMappings(mapping);
+        if (roomsData) {
+          const mapping: Record<string, Record<string, string>> = {};
+          roomsData.forEach(r => {
+            if (!mapping[r.itinerary_id]) mapping[r.itinerary_id] = {};
+            mapping[r.itinerary_id][r.traveler_id] = r.room_number;
+          });
+          setRoomMappings(mapping);
+        }
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          console.error('Error fetching data:', error.message || error);
+          setMessage({ type: 'error', text: error.message || '讀取資料失敗' });
+        }
+      } finally {
+        setLoading(false);
       }
+    };
 
+    if (groupId) {
+      fetchData();
+    }
+
+    return () => controller.abort();
+  }, [groupId]);
+
+  const fetchData = async (signal?: AbortSignal) => {
+    // Manual refresh if needed
+    if (!groupId) return;
+    try {
+      setLoading(true);
+      const query = supabase.from('groups').select('*').eq('id', groupId).single();
+      if (signal) query.abortSignal(signal);
+      
+      const { data: groupData } = await query;
+      if (groupData) setGroup(groupData);
     } catch (error: any) {
-      console.error('Fetch error:', error);
-      setMessage({ type: 'error', text: error.message });
+      if (error.name !== 'AbortError') {
+        console.error('Error fetching data:', error.message || error);
+      }
     } finally {
       setLoading(false);
     }

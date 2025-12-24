@@ -22,6 +22,9 @@ function LiffContent() {
       window.location.href = '/traveler';
       return;
     }
+
+    const controller = new AbortController();
+
     const initLiff = async () => {
       try {
         await liff.init({ liffId: process.env.NEXT_PUBLIC_LIFF_ID || '' });
@@ -34,42 +37,52 @@ function LiffContent() {
         setProfile(userProfile);
         
         if (name) {
-          handleBinding(userProfile.userId, name);
+          handleBinding(userProfile.userId, name, controller.signal);
         } else {
           setLoading(false);
           setStatus('error');
           setMessage('缺少必要參數，請透過正確連結開啟。');
         }
       } catch (err: any) {
-        console.error('LIFF Init Error:', err);
-        setLoading(false);
-        setStatus('error');
-        setMessage('LIFF 初始化失敗，請重新開啟。');
+        if (err.name !== 'AbortError') {
+          console.error('LIFF Init Error:', err);
+          setLoading(false);
+          setStatus('error');
+          setMessage('LIFF 初始化失敗，請重新開啟。');
+        }
       }
     };
 
     initLiff();
+    return () => controller.abort();
   }, [name]);
 
-  const handleBinding = async (userId: string, travelerName: string) => {
+  const handleBinding = async (userId: string, travelerName: string, signal?: AbortSignal) => {
     setStatus('binding');
     try {
       // 1. Find the traveler by name
-      const { data: traveler, error: findError } = await supabase
+      const query = supabase
         .from('travelers')
         .select('*')
-        .or(`full_name.eq."${travelerName}",name.eq."${travelerName}"`)
-        .single();
+        .or(`full_name.eq."${travelerName}",name.eq."${travelerName}"`);
+      
+      if (signal) query.abortSignal(signal);
+      
+      const { data: traveler, error: findError } = await query.single();
 
       if (findError || !traveler) {
         throw new Error('找不到對應的旅客資料，請洽領隊。');
       }
 
       // 2. Update the line_uid
-      const { error: updateError } = await supabase
+      const updateQuery = supabase
         .from('travelers')
         .update({ line_uid: userId })
         .eq('id', traveler.id);
+      
+      if (signal) updateQuery.abortSignal(signal);
+
+      const { error: updateError } = await updateQuery;
 
       if (updateError) {
         // Fallback: If column doesn't exist, we might need the user to add it
@@ -82,9 +95,11 @@ function LiffContent() {
       setStatus('success');
       setMessage(`綁定成功！您好，${travelerName}。`);
     } catch (err: any) {
-      console.error('Binding Error:', err);
-      setStatus('error');
-      setMessage(err.message || '綁定過程中發生錯誤。');
+      if (err.name !== 'AbortError') {
+        console.error('Binding Error:', err);
+        setStatus('error');
+        setMessage(err.message || '綁定過程中發生錯誤。');
+      }
     } finally {
       setLoading(false);
     }
