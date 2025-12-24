@@ -1,40 +1,52 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Plus, Navigation, Users, CheckSquare, LayoutGrid, FileText } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Navigation, Users, CheckSquare, LayoutGrid, FileText, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import GroupCard from '@/components/GroupCard';
 import AddGroupModal from '@/components/AddGroupModal';
-
-const MOCK_GROUPS = [
-  {
-    id: 1,
-    name: '日本關西五日賞楓團',
-    startDate: '2025-11-15',
-    endDate: '2025-11-19',
-    memberCount: 24,
-    location: '日本關西',
-  },
-  {
-    id: 2,
-    name: '泰國曼谷清邁八日遊',
-    startDate: '2025-12-01',
-    endDate: '2025-12-08',
-    memberCount: 18,
-    location: '泰國曼谷',
-  },
-  {
-    id: 3,
-    name: '歐洲五國精品之旅',
-    startDate: '2026-01-10',
-    endDate: '2026-01-25',
-    memberCount: 15,
-    location: '法德比荷盧',
-  }
-];
+import { supabase } from '@/lib/supabase';
+import { Group } from '@/types/database';
 
 export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [groups, setGroups] = useState<(Group & { memberCount: number })[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchGroups();
+  }, []);
+
+  const fetchGroups = async () => {
+    try {
+      setLoading(true);
+      // Fetch groups and join with traveler counts
+      const { data: groupsData, error: groupsError } = await supabase
+        .from('groups')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (groupsError) throw groupsError;
+
+      const groupsWithCounts = await Promise.all((groupsData || []).map(async (group) => {
+        const { count, error: countError } = await supabase
+          .from('travelers')
+          .select('*', { count: 'exact', head: true })
+          .eq('group_id', group.id);
+        
+        return {
+          ...group,
+          memberCount: count || 0
+        };
+      }));
+
+      setGroups(groupsWithCounts);
+    } catch (error) {
+      console.error('Error fetching groups:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <main className="min-h-screen bg-slate-950 text-white pb-20">
@@ -139,15 +151,29 @@ export default function Home() {
           <div className="bg-slate-900 px-8 py-4 rounded-[2rem] border border-slate-800 inline-flex items-center gap-4 shadow-inner">
             <span className="text-slate-500 font-black uppercase tracking-widest text-xs">運作中團體</span>
             <div className="w-px h-8 bg-slate-800"></div>
-            <span className="text-4xl font-black text-blue-500">{MOCK_GROUPS.length}</span>
+            <span className="text-4xl font-black text-blue-500">{groups.length}</span>
           </div>
         </div>
 
         {/* Professional Grid Layout */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {MOCK_GROUPS.map((group) => (
-            <GroupCard key={group.id} {...group} />
-          ))}
+          {loading ? (
+            <div className="col-span-full flex items-center justify-center py-20">
+              <Loader2 className="w-12 h-12 text-blue-500 animate-spin" />
+            </div>
+          ) : (
+            groups.map((group) => (
+              <GroupCard 
+                key={group.id} 
+                id={group.id}
+                name={group.name}
+                startDate={group.start_date}
+                endDate={group.end_date}
+                memberCount={group.memberCount}
+                location={group.name.split(' ')[0]} // Use first word of name as location for now
+              />
+            ))
+          )}
           
           {/* Add New Group Placeholder Card */}
           <button 
@@ -179,7 +205,10 @@ export default function Home() {
       {/* Professional Modal */}
       <AddGroupModal 
         isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+        onClose={() => {
+          setIsModalOpen(false);
+          fetchGroups(); // Refresh after adding
+        }} 
       />
     </main>
   );

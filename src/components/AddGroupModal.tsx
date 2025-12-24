@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
-import { X } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Loader2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 interface AddGroupModalProps {
   isOpen: boolean;
@@ -9,7 +10,46 @@ interface AddGroupModalProps {
 }
 
 const AddGroupModal: React.FC<AddGroupModalProps> = ({ isOpen, onClose }) => {
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    start_date: '',
+    end_date: '',
+  });
+
   if (!isOpen) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      // Generate a random 6-character group code
+      const groupCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      
+      const { data, error } = await supabase
+        .from('groups')
+        .insert([
+          { 
+            name: formData.name, 
+            start_date: formData.start_date, 
+            end_date: formData.end_date,
+            group_code: groupCode
+          }
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      onClose();
+      // Reset form
+      setFormData({ name: '', start_date: '', end_date: '' });
+    } catch (error: any) {
+      alert(`新增團體失敗: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-md">
@@ -29,12 +69,15 @@ const AddGroupModal: React.FC<AddGroupModalProps> = ({ isOpen, onClose }) => {
           </button>
         </div>
         
-        <form className="p-8 space-y-6" onSubmit={(e) => e.preventDefault()}>
+        <form className="p-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-2">
             <label className="block text-xs font-black text-slate-500 uppercase tracking-widest ml-1">團體名稱</label>
             <input 
+              required
               type="text" 
               placeholder="例如：日本關西五日賞楓團"
+              value={formData.name}
+              onChange={(e) => setFormData({...formData, name: e.target.value})}
               className="w-full px-6 py-4 bg-slate-950 border-2 border-slate-800 rounded-2xl focus:outline-none focus:border-blue-500 text-lg font-bold text-white transition-all placeholder:text-slate-700 shadow-inner"
             />
           </div>
@@ -43,40 +86,29 @@ const AddGroupModal: React.FC<AddGroupModalProps> = ({ isOpen, onClose }) => {
             <div className="space-y-2">
               <label className="block text-xs font-black text-slate-500 uppercase tracking-widest ml-1">開始日期</label>
               <input 
+                required
                 type="date" 
+                value={formData.start_date}
+                onChange={(e) => setFormData({...formData, start_date: e.target.value})}
                 className="w-full px-6 py-4 bg-slate-950 border-2 border-slate-800 rounded-2xl focus:outline-none focus:border-blue-500 text-lg font-bold text-white transition-all shadow-inner [color-scheme:dark]"
               />
             </div>
             <div className="space-y-2">
               <label className="block text-xs font-black text-slate-500 uppercase tracking-widest ml-1">結束日期</label>
               <input 
+                required
                 type="date" 
+                value={formData.end_date}
+                onChange={(e) => setFormData({...formData, end_date: e.target.value})}
                 className="w-full px-6 py-4 bg-slate-950 border-2 border-slate-800 rounded-2xl focus:outline-none focus:border-blue-500 text-lg font-bold text-white transition-all shadow-inner [color-scheme:dark]"
               />
             </div>
           </div>
           
-          <div className="space-y-2">
-            <label className="block text-xs font-black text-slate-500 uppercase tracking-widest ml-1">主要地點</label>
-            <input 
-              type="text" 
-              placeholder="例如：京都、大阪"
-              className="w-full px-6 py-4 bg-slate-950 border-2 border-slate-800 rounded-2xl focus:outline-none focus:border-blue-500 text-lg font-bold text-white transition-all placeholder:text-slate-700 shadow-inner"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <label className="block text-xs font-black text-slate-500 uppercase tracking-widest ml-1">預計團員人數</label>
-            <input 
-              type="number" 
-              placeholder="20"
-              className="w-full px-6 py-4 bg-slate-950 border-2 border-slate-800 rounded-2xl focus:outline-none focus:border-blue-500 text-lg font-bold text-white transition-all placeholder:text-slate-700 shadow-inner"
-            />
-          </div>
-          
           <div className="pt-6 flex gap-4">
             <button 
               type="button"
+              disabled={loading}
               onClick={onClose}
               className="flex-1 px-6 py-5 bg-slate-800 text-slate-400 font-black rounded-2xl hover:bg-slate-700 hover:text-white transition-all border-2 border-slate-700 active:scale-95 uppercase tracking-widest text-sm"
             >
@@ -84,9 +116,10 @@ const AddGroupModal: React.FC<AddGroupModalProps> = ({ isOpen, onClose }) => {
             </button>
             <button 
               type="submit"
-              className="flex-1 px-6 py-5 bg-blue-600 text-white font-black rounded-2xl hover:bg-blue-500 transition-all shadow-xl shadow-blue-900/40 border-2 border-blue-400 active:scale-95 uppercase tracking-widest text-sm"
+              disabled={loading}
+              className="flex-1 px-6 py-5 bg-blue-600 text-white font-black rounded-2xl hover:bg-blue-500 transition-all shadow-xl shadow-blue-900/40 border-2 border-blue-400 active:scale-95 uppercase tracking-widest text-sm flex items-center justify-center gap-2"
             >
-              確認新增
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : '確認新增'}
             </button>
           </div>
         </form>
