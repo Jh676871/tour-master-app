@@ -93,7 +93,7 @@ export default function CheckInPage() {
       const checkedSet = new Set<string>((checkinsData || []).map(c => c.traveler_id));
       setCheckedIds(checkedSet);
     } catch (error: any) {
-      if (error.name !== 'AbortError') {
+      if (error.name !== 'AbortError' && !error.message?.includes('AbortError')) {
         console.error('Error fetching data:', error.message || error);
       }
     } finally {

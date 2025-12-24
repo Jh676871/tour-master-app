@@ -55,7 +55,7 @@ export default function TravelersPage() {
           setSelectedGroupId(data[0].id);
         }
       } catch (error: any) {
-        if (error.name !== 'AbortError') {
+        if (error.name !== 'AbortError' && !error.message?.includes('AbortError')) {
           console.error('Error fetching groups:', error.message || error);
         }
       } finally {
@@ -101,7 +101,7 @@ export default function TravelersPage() {
           
           if (travelerData) setTravelers(travelerData);
         } catch (error: any) {
-          if (error.name !== 'AbortError') {
+          if (error.name !== 'AbortError' && !error.message?.includes('AbortError')) {
             console.error('Error loading group data:', error.message || error);
           }
         } finally {
@@ -135,7 +135,7 @@ export default function TravelersPage() {
             setRoomMappings(mapping);
           }
         } catch (error: any) {
-          if (error.name !== 'AbortError') {
+          if (error.name !== 'AbortError' && !error.message?.includes('AbortError')) {
             console.error('Error loading room numbers:', error.message || error);
           }
         }
@@ -162,7 +162,7 @@ export default function TravelersPage() {
         setSelectedGroupId(data[0].id);
       }
     } catch (error: any) {
-      if (error.name !== 'AbortError') {
+      if (error.name !== 'AbortError' && !error.message?.includes('AbortError')) {
         console.error('Error fetching groups:', error.message || error);
       }
     } finally {

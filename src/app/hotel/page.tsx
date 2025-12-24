@@ -15,7 +15,10 @@ import {
   Calendar,
   Clock,
   Trash2,
-  Phone
+  Phone,
+  Search,
+  ExternalLink,
+  StickyNote
 } from 'lucide-react';
 import Link from 'next/link';
 import { Hotel, Group, Itinerary } from '@/types/database';
@@ -27,13 +30,18 @@ export default function HotelSettingsPage() {
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState<string>('');
   const [itineraries, setItineraries] = useState<Itinerary[]>([]);
+  const [hotelSearch, setHotelSearch] = useState('');
   
   const [showAddHotel, setShowAddHotel] = useState(false);
   const [newHotel, setNewHotel] = useState({
     name: '',
     address: '',
     phone: '',
-    wifi_info: ''
+    wifi_info: '',
+    google_map_url: '',
+    breakfast_info: '',
+    gym_pool_info: '',
+    guide_notes: ''
   });
 
   useEffect(() => {
@@ -55,7 +63,7 @@ export default function HotelSettingsPage() {
         }
         if (hotelsRes.data) setHotels(hotelsRes.data);
       } catch (error: any) {
-        if (error.name !== 'AbortError') {
+        if (error.name !== 'AbortError' && !error.message?.includes('AbortError')) {
           console.error('Error fetching data:', error.message || error);
         }
       } finally {
@@ -82,7 +90,7 @@ export default function HotelSettingsPage() {
         
         if (data) setItineraries(data);
       } catch (error: any) {
-        if (error.name !== 'AbortError') {
+        if (error.name !== 'AbortError' && !error.message?.includes('AbortError')) {
           console.error('Error loading itineraries:', error.message || error);
         }
       }
@@ -231,7 +239,29 @@ export default function HotelSettingsPage() {
           <Link href="/" className="p-2 hover:bg-slate-800 rounded-xl transition-colors">
             <ArrowLeft className="w-6 h-6 text-slate-400" />
           </Link>
-          <h1 className="text-xl font-black tracking-tight">行程與飯店管理</h1>
+          <h1 className="text-xl font-black tracking-tight">飯店與行程設定</h1>
+        </div>
+        <div className="flex items-center gap-3">
+          <Link 
+            href="/hotels"
+            className="bg-slate-800 hover:bg-slate-700 text-green-400 px-4 py-2 rounded-xl font-black transition-all flex items-center gap-2 text-sm"
+          >
+            <HotelIcon className="w-5 h-5" />
+            飯店資料庫
+          </Link>
+          <button 
+            onClick={() => {
+              setSaving(true);
+              Promise.all(itineraries.map(it => handleUpdateItinerary(it.id, it)))
+                .then(() => alert('全部儲存成功'))
+                .catch(err => alert('部分儲存失敗: ' + err.message))
+                .finally(() => setSaving(false));
+            }}
+            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl font-black transition-all flex items-center gap-2 text-sm shadow-lg shadow-blue-900/40"
+          >
+            <Save className="w-5 h-5" />
+            全部儲存
+          </button>
         </div>
       </header>
 
@@ -309,13 +339,25 @@ export default function HotelSettingsPage() {
                       <label className="flex items-center gap-2 text-xs font-black text-slate-500 uppercase tracking-widest ml-1">
                         <HotelIcon className="w-4 h-4" /> 住宿飯店
                       </label>
+                      <div className="relative group/search">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within/search:text-blue-500 transition-colors" />
+                        <input 
+                          type="text"
+                          placeholder="搜尋飯店..."
+                          value={hotelSearch}
+                          onChange={(e) => setHotelSearch(e.target.value)}
+                          className="w-full bg-slate-950 border-2 border-slate-800 rounded-t-2xl px-11 py-3 focus:border-blue-500 focus:outline-none font-bold text-sm"
+                        />
+                      </div>
                       <select 
                         value={it.hotel_id || ''}
                         onChange={(e) => handleUpdateItinerary(it.id, { hotel_id: e.target.value })}
-                        className="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl px-6 py-4 focus:border-blue-500 focus:outline-none font-bold text-lg appearance-none"
+                        className="w-full bg-slate-950 border-2 border-t-0 border-slate-800 rounded-b-2xl px-6 py-4 focus:border-blue-500 focus:outline-none font-bold text-lg appearance-none"
                       >
                         <option value="">未選擇飯店</option>
-                        {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                        {hotels
+                          .filter(h => h.name.toLowerCase().includes(hotelSearch.toLowerCase()))
+                          .map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
                       </select>
                     </div>
 
@@ -411,6 +453,26 @@ export default function HotelSettingsPage() {
                     className="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl px-6 py-4 focus:border-blue-500 focus:outline-none font-bold text-lg"
                   />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Google Maps 連結</label>
+                <input 
+                  type="text"
+                  value={newHotel.google_map_url}
+                  onChange={(e) => setNewHotel({...newHotel, google_map_url: e.target.value})}
+                  className="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl px-6 py-4 focus:border-blue-500 focus:outline-none font-bold text-lg"
+                  placeholder="https://maps.app.goo.gl/..."
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest ml-1">早餐資訊</label>
+                <textarea 
+                  value={newHotel.breakfast_info}
+                  onChange={(e) => setNewHotel({...newHotel, breakfast_info: e.target.value})}
+                  rows={2}
+                  className="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl px-6 py-4 focus:border-blue-500 focus:outline-none font-bold text-lg resize-none"
+                  placeholder="例如：06:30-10:00 2樓餐廳"
+                />
               </div>
               <div className="flex gap-4 pt-4">
                 <button 

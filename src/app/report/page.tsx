@@ -69,8 +69,8 @@ export default function TourReportPage() {
           .abortSignal(controller.signal);
         setExpenses(expensesData || []);
       } catch (error: any) {
-        if (error.name !== 'AbortError') {
-          console.error('Error fetching report data:', error);
+        if (error.name !== 'AbortError' && !error.message?.includes('AbortError')) {
+          console.error('Error fetching report data:', error.message || error);
         }
       } finally {
         setLoading(false);

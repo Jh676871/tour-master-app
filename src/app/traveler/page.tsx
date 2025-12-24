@@ -15,7 +15,11 @@ import {
   Key,
   Navigation,
   Calendar,
-  Phone
+  Phone,
+  Dumbbell,
+  StickyNote,
+  Map as MapIcon,
+  Users
 } from 'lucide-react';
 import { Traveler, Group, Itinerary, Hotel } from '@/types/database';
 
@@ -24,7 +28,9 @@ export default function TravelerLIFFPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [traveler, setTraveler] = useState<Traveler | null>(null);
   const [itineraries, setItineraries] = useState<(Itinerary & { hotel: Hotel | null })[]>([]);
+  const [itinSpots, setItinSpots] = useState<Record<string, any[]>>({});
   const [currentItinerary, setCurrentItinerary] = useState<(Itinerary & { hotel: Hotel }) | null>(null);
+  const [activeDayIndex, setActiveDayIndex] = useState(0);
   const [roomMappings, setRoomMappings] = useState<Record<string, string>>({});
   const [currentRoom, setCurrentRoom] = useState<string>('');
   const [binding, setBinding] = useState(false);
@@ -55,7 +61,7 @@ export default function TravelerLIFFPage() {
         setUserId(profile.userId);
         await checkBinding(profile.userId, controller.signal);
       } catch (err: any) {
-        if (err.name !== 'AbortError') {
+        if (err.name !== 'AbortError' && !err.message?.includes('AbortError')) {
           console.error('LIFF Init Error:', err);
           setError('LINE 登入失敗，請確認在 LINE App 中開啟。');
         }
@@ -100,14 +106,18 @@ export default function TravelerLIFFPage() {
     
     const { data: allItineraries } = await itinQuery;
 
-    if (allItineraries) {
-      setItineraries(allItineraries as any);
-      
-      // Find today's or next available itinerary
-      const todayItin = allItineraries.find(it => it.trip_date >= today) || allItineraries[allItineraries.length - 1];
-      if (todayItin) {
-        setCurrentItinerary(todayItin as any);
-      }
+      if (allItineraries) {
+        setItineraries(allItineraries as any);
+        
+        // Find today's or next available itinerary
+        const todayIdx = allItineraries.findIndex(it => it.trip_date >= today);
+        const finalIdx = todayIdx !== -1 ? todayIdx : allItineraries.length - 1;
+        
+        setActiveDayIndex(finalIdx);
+        const todayItin = allItineraries[finalIdx];
+        if (todayItin) {
+          setCurrentItinerary(todayItin as any);
+        }
 
       // 2. Fetch ALL room numbers for this traveler in this group
       const itinIds = allItineraries.map(it => it.id);
@@ -130,6 +140,28 @@ export default function TravelerLIFFPage() {
 
         if (todayItin && mapping[todayItin.id]) {
           setCurrentRoom(mapping[todayItin.id]);
+        }
+      }
+
+      // 3. Fetch Itinerary Spots
+      if (itinIds.length > 0) {
+        const spotQuery = supabase
+          .from('itinerary_spots')
+          .select('*, spot:spots(*)')
+          .in('itinerary_id', itinIds)
+          .order('sort_order', { ascending: true });
+        
+        if (signal) spotQuery.abortSignal(signal);
+        
+        const { data: spotData } = await spotQuery;
+        
+        if (spotData) {
+          const mapping: Record<string, any[]> = {};
+          spotData.forEach(item => {
+            if (!mapping[item.itinerary_id]) mapping[item.itinerary_id] = [];
+            mapping[item.itinerary_id].push(item);
+          });
+          setItinSpots(mapping);
         }
       }
     }
@@ -285,28 +317,61 @@ export default function TravelerLIFFPage() {
         </div>
       </div>
 
+      {/* Day Selector */}
+      <div className="bg-slate-950/80 backdrop-blur-md border-b border-slate-900 overflow-x-auto scrollbar-hide flex gap-2 p-4 sticky top-0 z-30">
+        {itineraries.map((itin, idx) => (
+          <button
+            key={itin.id}
+            onClick={() => {
+              setActiveDayIndex(idx);
+              setCurrentItinerary(itin as any);
+              setCurrentRoom(roomMappings[itin.id] || '');
+            }}
+            className={`flex-none w-14 h-14 rounded-2xl flex flex-col items-center justify-center transition-all border-2 ${
+              activeDayIndex === idx 
+                ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-900/40' 
+                : 'bg-slate-900 border-slate-800 text-slate-500'
+            }`}
+          >
+            <span className="text-[10px] font-black uppercase tracking-tighter leading-none mb-1">D</span>
+            <span className="text-lg font-black leading-none">{idx + 1}</span>
+          </button>
+        ))}
+      </div>
+
       <div className="p-6 space-y-6">
         {/* HUGE HOTEL NAME & ROOM NUMBER */}
-        <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-8 rounded-[3rem] shadow-2xl shadow-blue-900/40 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-          <div className="relative z-10 space-y-8">
+        <div className="bg-slate-900 rounded-[3rem] shadow-2xl shadow-blue-900/40 relative overflow-hidden min-h-[300px] flex flex-col justify-end">
+          {currentItinerary?.hotel?.image_url ? (
+            <img 
+              src={currentItinerary.hotel.image_url} 
+              alt={currentItinerary.hotel.name}
+              className="absolute inset-0 w-full h-full object-cover opacity-60"
+            />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-blue-800 opacity-100"></div>
+          )}
+          
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent"></div>
+          
+          <div className="relative z-10 p-8 space-y-8">
             <div className="space-y-1">
-              <p className="text-blue-200 text-xs font-black uppercase tracking-[0.3em]">
+              <p className="text-blue-400 text-xs font-black uppercase tracking-[0.3em] drop-shadow-md">
                 {currentItinerary?.trip_date} 住宿飯店
               </p>
-              <h1 className="text-3xl md:text-4xl font-black tracking-tighter leading-tight">
+              <h1 className="text-3xl md:text-4xl font-black tracking-tighter leading-tight drop-shadow-xl text-white">
                 {currentItinerary?.hotel?.name || '今日尚未設定飯店'}
               </h1>
             </div>
             
             <div className="flex items-end justify-between">
               <div className="space-y-1">
-                <p className="text-blue-200 text-xs font-black uppercase tracking-[0.3em]">我的房號</p>
-                <div className="text-7xl md:text-8xl font-black tracking-tighter text-white">
+                <p className="text-blue-400 text-xs font-black uppercase tracking-[0.3em] drop-shadow-md">我的房號</p>
+                <div className="text-7xl md:text-8xl font-black tracking-tighter text-white drop-shadow-2xl">
                   {currentRoom || '---'}
                 </div>
               </div>
-              <div className="bg-white/20 p-4 rounded-[2rem] backdrop-blur-md border border-white/20">
+              <div className="bg-white/10 p-4 rounded-[2rem] backdrop-blur-md border border-white/20">
                 <Building2 className="w-12 h-12 text-white" />
               </div>
             </div>
@@ -325,11 +390,103 @@ export default function TravelerLIFFPage() {
             </div>
             <div className="bg-slate-900 border border-slate-800 p-5 rounded-[2rem] space-y-1">
               <div className="flex items-center gap-2 text-green-400">
-                <Clock className="w-4 h-4" />
+                <Users className="w-4 h-4" />
                 <span className="text-[10px] font-black uppercase tracking-widest">集合時間</span>
               </div>
               <p className="text-xl font-black">{formatTimeWithNextDate(currentItinerary.meeting_time, currentItinerary.trip_date)}</p>
             </div>
+          </div>
+        )}
+
+        {/* Modular Spots Timeline */}
+        {currentItinerary && itinSpots[currentItinerary.id] && itinSpots[currentItinerary.id].length > 0 && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 px-2">
+              <MapIcon className="w-6 h-6 text-blue-500" />
+              <h3 className="text-xl font-black tracking-tight">今日行程景點</h3>
+            </div>
+            
+            <div className="space-y-4 relative before:absolute before:left-6 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-800">
+              {itinSpots[currentItinerary.id].map((item, idx) => (
+                <div key={item.id} className="relative pl-12">
+                  <div className="absolute left-4 top-2 w-4 h-4 rounded-full bg-blue-600 border-4 border-slate-950 z-10"></div>
+                  <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden">
+                    {item.spot?.image_url && (
+                      <div className="aspect-video relative">
+                        <img src={item.spot.image_url} alt="" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                    <div className="p-5">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <h4 className="text-lg font-black">{item.spot?.name}</h4>
+                        <span className="bg-slate-800 text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest text-slate-400 shrink-0">
+                          {item.spot?.category || '景點'}
+                        </span>
+                      </div>
+                      <p className="text-xs font-bold text-slate-500 mb-4 flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-blue-500" /> {item.spot?.address}
+                      </p>
+                      
+                      {item.spot?.google_map_url && (
+                        <a 
+                          href={item.spot.google_map_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-2xl font-black text-xs transition-all border border-slate-700"
+                        >
+                          <Navigation className="w-4 h-4 text-blue-400" />
+                          開啟導覽
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* NEW: Hotel Details Section */}
+        {currentItinerary?.hotel && (
+          <div className="grid grid-cols-1 gap-4">
+            {/* WiFi & Breakfast - Side by side */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-slate-900 border border-slate-800 p-5 rounded-[2rem] space-y-2">
+                <div className="flex items-center gap-2 text-blue-400">
+                  <Wifi className="w-4 h-4" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">WiFi 資訊</span>
+                </div>
+                <p className="text-sm font-bold text-slate-200">{currentItinerary.hotel.wifi_info || '請洽櫃台'}</p>
+              </div>
+              <div className="bg-slate-900 border border-slate-800 p-5 rounded-[2rem] space-y-2">
+                <div className="flex items-center gap-2 text-orange-400">
+                  <Clock className="w-4 h-4" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">早餐資訊</span>
+                </div>
+                <p className="text-sm font-bold text-slate-200">{currentItinerary.hotel.breakfast_info || '請洽櫃台'}</p>
+              </div>
+            </div>
+
+            {/* Facilities & Guide Notes - Stacked */}
+            {currentItinerary.hotel.gym_pool_info && (
+              <div className="bg-slate-900 border border-slate-800 p-5 rounded-[2rem] space-y-2">
+                <div className="flex items-center gap-2 text-purple-400">
+                  <Dumbbell className="w-4 h-4" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">飯店設施</span>
+                </div>
+                <p className="text-sm font-bold text-slate-200">{currentItinerary.hotel.gym_pool_info}</p>
+              </div>
+            )}
+            
+            {currentItinerary.hotel.guide_notes && (
+              <div className="bg-slate-900 border border-slate-800 p-5 rounded-[2rem] space-y-2">
+                <div className="flex items-center gap-2 text-yellow-400">
+                  <StickyNote className="w-4 h-4" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">注意事項</span>
+                </div>
+                <p className="text-sm font-bold text-slate-200">{currentItinerary.hotel.guide_notes}</p>
+              </div>
+            )}
           </div>
         )}
 
@@ -420,7 +577,7 @@ export default function TravelerLIFFPage() {
                   )}
                   {itin.meeting_time && (
                     <div className="flex items-center gap-1.5 text-[10px] font-black text-green-400 uppercase tracking-widest">
-                      <Clock className="w-3 h-3" />
+                      <Users className="w-3 h-3" />
                       集合 {formatTimeWithNextDate(itin.meeting_time, itin.trip_date)}
                     </div>
                   )}

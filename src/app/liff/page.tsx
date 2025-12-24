@@ -44,12 +44,14 @@ function LiffContent() {
           setMessage('缺少必要參數，請透過正確連結開啟。');
         }
       } catch (err: any) {
-        if (err.name !== 'AbortError') {
-          console.error('LIFF Init Error:', err);
+        if (err.name !== 'AbortError' && !err.message?.includes('AbortError')) {
+          console.error('LIFF Init Error:', err.message || err);
           setLoading(false);
           setStatus('error');
           setMessage('LIFF 初始化失敗，請重新開啟。');
         }
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -59,6 +61,7 @@ function LiffContent() {
 
   const handleBinding = async (userId: string, travelerName: string, signal?: AbortSignal) => {
     setStatus('binding');
+    setLoading(true);
     try {
       // 1. Find the traveler by name
       const query = supabase
@@ -95,10 +98,10 @@ function LiffContent() {
       setStatus('success');
       setMessage(`綁定成功！您好，${travelerName}。`);
     } catch (err: any) {
-      if (err.name !== 'AbortError') {
-        console.error('Binding Error:', err);
+      if (err.name !== 'AbortError' && !err.message?.includes('AbortError')) {
+        console.error('Binding Error:', err.message || err);
         setStatus('error');
-        setMessage(err.message || '綁定過程中發生錯誤。');
+        setMessage(err.message || '綁定失敗，請洽領隊。');
       }
     } finally {
       setLoading(false);

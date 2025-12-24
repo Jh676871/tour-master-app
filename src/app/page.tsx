@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Navigation, Users, CheckSquare, LayoutGrid, FileText, Loader2 } from 'lucide-react';
+import { Plus, Navigation, Users, CheckSquare, LayoutGrid, FileText, Loader2, Hotel, Map as MapIcon } from 'lucide-react';
 import Link from 'next/link';
 import GroupCard from '@/components/GroupCard';
 import AddGroupModal from '@/components/AddGroupModal';
@@ -33,12 +33,12 @@ export default function Home() {
       const { data: groupsData, error: groupsError } = await query;
 
       if (groupsError) {
-        console.error('Groups Fetch Error Details:', {
-          message: groupsError.message,
-          details: groupsError.details,
-          hint: groupsError.hint,
-          code: groupsError.code
-        });
+        // If it's an abort error, we don't want to log it as a full error
+        if (groupsError.message?.includes('AbortError') || groupsError.code === 'ABORT') {
+          return;
+        }
+        
+        console.error('Groups Fetch Error Details:', groupsError);
         throw groupsError;
       }
 
@@ -76,7 +76,7 @@ export default function Home() {
 
       setGroups(groupsWithCounts);
     } catch (error: any) {
-      if (error.name !== 'AbortError') {
+      if (error.name !== 'AbortError' && !error.message?.includes('AbortError')) {
         console.error('Error fetching groups:', error.message || error);
       }
     } finally {
@@ -132,42 +132,60 @@ export default function Home() {
             </div>
             
             {/* Quick Action Large Buttons - Primary for one-handed */}
-            <div className="grid grid-cols-2 gap-4 w-full md:w-auto">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 w-full md:w-auto">
               <Link 
                 href="/check-in"
-                className="flex flex-col items-center justify-center gap-3 bg-blue-600 hover:bg-blue-500 text-white p-8 rounded-[2.5rem] font-black transition-all shadow-2xl shadow-blue-900/40 active:scale-95 border-2 border-blue-400 group h-44 w-full md:w-44"
+                className="flex flex-col items-center justify-center gap-3 bg-blue-600 hover:bg-blue-500 text-white p-6 rounded-[2rem] font-black transition-all shadow-2xl shadow-blue-900/40 active:scale-95 border-2 border-blue-400 group h-40 w-full md:w-40"
               >
                 <div className="bg-white/20 p-3 rounded-2xl group-hover:scale-110 transition-transform">
-                  <CheckSquare className="w-8 h-8" />
+                  <CheckSquare className="w-6 h-6" />
                 </div>
-                <span className="uppercase tracking-widest text-sm">每日點名</span>
+                <span className="uppercase tracking-widest text-xs">每日點名</span>
               </Link>
               <Link 
                 href="/travelers"
-                className="flex flex-col items-center justify-center gap-3 bg-slate-800 hover:bg-slate-700 text-white p-8 rounded-[2.5rem] font-black transition-all shadow-xl border-2 border-slate-700 active:scale-95 group h-44 w-full md:w-44"
+                className="flex flex-col items-center justify-center gap-3 bg-slate-800 hover:bg-slate-700 text-white p-6 rounded-[2rem] font-black transition-all shadow-xl border-2 border-slate-700 active:scale-95 group h-40 w-full md:w-40"
               >
                 <div className="bg-white/10 p-3 rounded-2xl group-hover:scale-110 transition-transform">
-                  <Users className="w-8 h-8" />
+                  <Users className="w-6 h-6" />
                 </div>
-                <span className="uppercase tracking-widest text-sm text-center">旅客名單</span>
+                <span className="uppercase tracking-widest text-xs text-center">旅客名單</span>
               </Link>
               <Link 
                 href="/report"
-                className="flex flex-col items-center justify-center gap-3 bg-slate-800 hover:bg-slate-700 text-white p-8 rounded-[2.5rem] font-black transition-all shadow-xl border-2 border-slate-700 active:scale-95 group h-44 w-full md:w-44"
+                className="flex flex-col items-center justify-center gap-3 bg-slate-800 hover:bg-slate-700 text-white p-6 rounded-[2rem] font-black transition-all shadow-xl border-2 border-slate-700 active:scale-95 group h-40 w-full md:w-40"
               >
                 <div className="bg-white/10 p-3 rounded-2xl group-hover:scale-110 transition-transform text-purple-400">
-                  <FileText className="w-8 h-8" />
+                  <FileText className="w-6 h-6" />
                 </div>
-                <span className="uppercase tracking-widest text-sm text-center">完團報告</span>
+                <span className="uppercase tracking-widest text-xs text-center">完團報告</span>
               </Link>
               <Link 
                 href="/hotel"
-                className="flex flex-col items-center justify-center gap-3 bg-slate-800 hover:bg-slate-700 text-white p-8 rounded-[2.5rem] font-black transition-all shadow-xl border-2 border-slate-700 active:scale-95 group h-44 w-full md:w-44"
+                className="flex flex-col items-center justify-center gap-3 bg-slate-800 hover:bg-slate-700 text-white p-6 rounded-[2rem] font-black transition-all shadow-xl border-2 border-slate-700 active:scale-95 group h-40 w-full md:w-40"
               >
                 <div className="bg-white/10 p-3 rounded-2xl group-hover:scale-110 transition-transform text-orange-400">
-                  <Navigation className="w-8 h-8" />
+                  <Navigation className="w-6 h-6" />
                 </div>
-                <span className="uppercase tracking-widest text-sm text-center">飯店設定</span>
+                <span className="uppercase tracking-widest text-xs text-center">飯店設定</span>
+              </Link>
+              <Link 
+                href="/hotels"
+                className="flex flex-col items-center justify-center gap-3 bg-slate-800 hover:bg-slate-700 text-white p-6 rounded-[2rem] font-black transition-all shadow-xl border-2 border-slate-700 active:scale-95 group h-40 w-full md:w-40"
+              >
+                <div className="bg-white/10 p-3 rounded-2xl group-hover:scale-110 transition-transform text-green-400">
+                  <Hotel className="w-6 h-6" />
+                </div>
+                <span className="uppercase tracking-widest text-xs text-center">飯店資料庫</span>
+              </Link>
+              <Link 
+                href="/spots"
+                className="flex flex-col items-center justify-center gap-3 bg-slate-800 hover:bg-slate-700 text-white p-6 rounded-[2rem] font-black transition-all shadow-xl border-2 border-slate-700 active:scale-95 group h-40 w-full md:w-40"
+              >
+                <div className="bg-white/10 p-3 rounded-2xl group-hover:scale-110 transition-transform text-pink-400">
+                  <MapIcon className="w-6 h-6" />
+                </div>
+                <span className="uppercase tracking-widest text-xs text-center">景點資料庫</span>
               </Link>
             </div>
           </div>

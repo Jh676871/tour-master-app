@@ -4,6 +4,11 @@ export interface Hotel {
   address: string;
   phone: string;
   wifi_info: string;
+  google_map_url?: string;
+  breakfast_info?: string;
+  gym_pool_info?: string;
+  guide_notes?: string;
+  image_url?: string;
   created_at: string;
 }
 
@@ -43,5 +48,16 @@ export interface TravelerRoom {
   traveler_id: string;
   itinerary_id: string;
   room_number: string;
+  created_at: string;
+}
+
+export interface Spot {
+  id: string;
+  name: string;
+  address: string;
+  description?: string;
+  image_url?: string;
+  google_map_url?: string;
+  category?: string;
   created_at: string;
 }
