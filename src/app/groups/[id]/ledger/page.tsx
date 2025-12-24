@@ -543,34 +543,48 @@ export default function LedgerPage() {
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="relative flex flex-col items-center gap-3 bg-slate-800 hover:bg-slate-700 p-6 rounded-2xl border-2 border-slate-700 hover:border-blue-500 transition-all group overflow-hidden">
+                      {/* Camera Button */}
+                      <label 
+                        htmlFor="camera-input"
+                        className="flex flex-col items-center gap-3 bg-slate-800 hover:bg-slate-700 p-6 rounded-2xl border-2 border-slate-700 hover:border-blue-500 transition-all group cursor-pointer active:scale-95"
+                      >
                         <input 
+                          id="camera-input"
                           type="file" 
                           accept="image/*" 
                           capture="environment"
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                          className="hidden"
                           onChange={handleFileChange}
                         />
                         <div className="w-12 h-12 bg-slate-900 rounded-full flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
                           <Camera className="w-6 h-6" />
                         </div>
                         <span className="font-black text-white">立即拍照</span>
-                      </div>
+                      </label>
 
-                      <div className="relative flex flex-col items-center gap-3 bg-slate-800 hover:bg-slate-700 p-6 rounded-2xl border-2 border-slate-700 hover:border-purple-500 transition-all group overflow-hidden">
+                      {/* Gallery Button */}
+                      <label
+                        htmlFor="gallery-input"
+                        className="flex flex-col items-center gap-3 bg-slate-800 hover:bg-slate-700 p-6 rounded-2xl border-2 border-slate-700 hover:border-purple-500 transition-all group cursor-pointer active:scale-95"
+                      >
                         <input 
+                          id="gallery-input"
                           type="file" 
                           accept="image/*" 
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                          className="hidden"
                           onChange={handleFileChange}
                         />
                         <div className="w-12 h-12 bg-slate-900 rounded-full flex items-center justify-center text-purple-500 group-hover:scale-110 transition-transform">
                           <Wallet className="w-6 h-6" />
                         </div>
                         <span className="font-black text-white">從相簿選擇</span>
-                      </div>
+                      </label>
                     </div>
                   )}
+                  <p className="text-xs text-center text-slate-500 font-bold mt-2">
+                    * 若無法啟動相機，請確認 LINE App 已開啟相機權限
+                  </p>
+                </div>
                 </div>
 
                 {/* Submit */}
