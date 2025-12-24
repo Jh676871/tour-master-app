@@ -49,6 +49,7 @@ export default function GroupEditPage() {
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [spots, setSpots] = useState<Spot[]>([]);
   const [itineraries, setItineraries] = useState<Itinerary[]>([]);
+  const [activeDayIndex, setActiveDayIndex] = useState(0);
   const [itinerarySpots, setItinerarySpots] = useState<Record<string, any[]>>({}); // { itineraryId: spotObjects[] }
   const [travelers, setTravelers] = useState<Traveler[]>([]);
   const [roomMappings, setRoomMappings] = useState<Record<string, Record<string, string>>>({}); // { itineraryId: { travelerId: roomNumber } }
@@ -379,6 +380,7 @@ export default function GroupEditPage() {
         }
         
         setItineraries(currentItineraries);
+        setActiveDayIndex(0);
 
         // 3.5 Fetch Itinerary Spots
         const itinIds = currentItineraries.map((it: any) => it.id).filter(Boolean);

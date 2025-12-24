@@ -87,3 +87,17 @@ export interface ItinerarySpotTable {
   notes?: string;
   created_at: string;
 }
+
+export interface LeaderLedger {
+  id: string;
+  group_id: string;
+  type: 'income' | 'expense';
+  category: string;
+  amount: number;
+  currency: string;
+  exchange_rate: number;
+  title: string;
+  notes?: string;
+  receipt_url?: string;
+  created_at: string;
+}

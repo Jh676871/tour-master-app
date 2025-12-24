@@ -31,6 +31,7 @@ export default function HotelSettingsPage() {
   const [selectedGroupId, setSelectedGroupId] = useState<string>('');
   const [itineraries, setItineraries] = useState<Itinerary[]>([]);
   const [hotelSearch, setHotelSearch] = useState('');
+  const [itineraryToDelete, setItineraryToDelete] = useState<string | null>(null);
   
   const [showAddHotel, setShowAddHotel] = useState(false);
   const [newHotel, setNewHotel] = useState({
@@ -216,12 +217,17 @@ export default function HotelSettingsPage() {
     }
   };
 
-  const handleDeleteItinerary = async (id: string) => {
-    if (!confirm('確定要刪除此日行程嗎？')) return;
+  const handleDeleteItineraryClick = (id: string) => {
+    setItineraryToDelete(id);
+  };
+
+  const confirmDeleteItinerary = async () => {
+    if (!itineraryToDelete) return;
     try {
-      const { error } = await supabase.from('itineraries').delete().eq('id', id);
+      const { error } = await supabase.from('itineraries').delete().eq('id', itineraryToDelete);
       if (error) throw error;
-      setItineraries(itineraries.filter(it => it.id !== id));
+      setItineraries(itineraries.filter(it => it.id !== itineraryToDelete));
+      setItineraryToDelete(null);
     } catch (error: any) {
       alert(`刪除失敗: ${error.message}`);
     }
@@ -329,7 +335,7 @@ export default function HotelSettingsPage() {
                       />
                     </div>
                     <button 
-                      onClick={() => handleDeleteItinerary(it.id)}
+                      onClick={() => handleDeleteItineraryClick(it.id)}
                       className="p-3 text-slate-600 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
                     >
                       <Trash2 className="w-5 h-5" />
@@ -494,6 +500,38 @@ export default function HotelSettingsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {itineraryToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setItineraryToDelete(null)}></div>
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-md rounded-[2.5rem] shadow-2xl relative z-10 overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-8 text-center space-y-6">
+              <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto">
+                <Trash2 className="w-10 h-10 text-red-500" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-black text-white">確定要刪除此行程嗎？</h3>
+                <p className="text-slate-400 font-bold">刪除後將無法復原此日期的所有設定。</p>
+              </div>
+              <div className="flex gap-4 pt-4">
+                <button 
+                  onClick={() => setItineraryToDelete(null)}
+                  className="flex-1 py-4 bg-slate-800 hover:bg-slate-700 rounded-2xl font-black transition-all text-slate-300"
+                >
+                  取消
+                </button>
+                <button 
+                  onClick={confirmDeleteItinerary}
+                  className="flex-1 py-4 bg-red-600 hover:bg-red-500 rounded-2xl font-black transition-all shadow-lg shadow-red-900/40 text-white"
+                >
+                  確認刪除
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
