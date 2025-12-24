@@ -659,8 +659,8 @@ export default function TravelerLIFFPage() {
                 <p className="font-bold text-slate-200">{currentItinerary?.hotel?.wifi_info || '請洽櫃檯'}</p>
               </div>
             </div>
-            <button onClick={() => currentItinerary?.hotel?.wifi_info && copyToClipboard(currentItinerary.hotel.wifi_info)} className="p-2 bg-slate-800 text-slate-500 rounded-lg">
-              <Copy className="w-4 h-4" />
+            <button onClick={() => currentItinerary?.hotel?.wifi_info && copyToClipboard(currentItinerary.hotel.wifi_info)} className="p-4 bg-slate-800 text-slate-500 rounded-lg min-w-[48px] min-h-[48px] flex items-center justify-center">
+              <Copy className="w-5 h-5" />
             </button>
           </div>
         </div>

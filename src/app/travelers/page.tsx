@@ -592,7 +592,7 @@ export default function TravelersPage() {
                               <button
                                 key={option}
                                 onClick={() => toggleDietaryTag(t, option)}
-                                className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border ${
+                                className={`px-3 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all border touch-manipulation min-w-[48px] min-h-[48px] flex items-center justify-center ${
                                   isSelected 
                                     ? 'bg-blue-600 border-blue-400 text-white' 
                                     : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-600'
@@ -733,7 +733,7 @@ export default function TravelersPage() {
                           }
                           setNewTraveler(prev => ({ ...prev, dietary_needs: newNeeds }));
                         }}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all border ${
+                        className={`px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all border touch-manipulation min-h-[44px] flex items-center justify-center ${
                           isSelected 
                             ? 'bg-blue-600 border-blue-400 text-white' 
                             : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-600'
