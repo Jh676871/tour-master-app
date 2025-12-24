@@ -585,7 +585,6 @@ export default function LedgerPage() {
                     * 若無法啟動相機，請確認 LINE App 已開啟相機權限
                   </p>
                 </div>
-                </div>
 
                 {/* Submit */}
                 <button
