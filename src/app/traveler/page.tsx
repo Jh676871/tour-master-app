@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import liff from '@line/liff';
+import Image from 'next/image';
 import { 
   Loader2, 
   UserCheck, 
@@ -238,8 +239,13 @@ export default function TravelerLIFFPage() {
       <main className="min-h-screen bg-slate-950 text-white p-6 flex flex-col items-center justify-center">
         <div className="w-full max-w-md space-y-8">
           <div className="text-center space-y-4">
-            <div className="bg-blue-600 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto shadow-2xl border border-blue-400">
-              <UserCheck className="w-10 h-10 text-white" />
+            <div className="relative w-24 h-24 mx-auto overflow-hidden rounded-[2rem] shadow-2xl border border-blue-400/50 bg-slate-900">
+              <Image 
+                src="/logo.png" 
+                alt="TourMaster Logo" 
+                fill
+                className="object-cover"
+              />
             </div>
             <h1 className="text-3xl font-black tracking-tighter">旅客資料綁定</h1>
             <p className="text-slate-400 font-medium">歡迎！請輸入以下資訊以連結您的行程。</p>

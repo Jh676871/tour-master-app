@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import Image from 'next/image';
 import { 
   MapPin, 
   Calendar, 
@@ -105,12 +106,22 @@ export default function GroupPreviewPage() {
           <div className="w-full h-full bg-gradient-to-br from-blue-900 to-slate-900"></div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent"></div>
-        <div className="absolute bottom-6 left-6 right-6">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="bg-blue-600 text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-[0.2em]">Day {activeDay + 1}</span>
-            <span className="text-slate-400 text-xs font-bold">{currentItin?.trip_date}</span>
+        <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="bg-blue-600 text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-[0.2em]">Day {activeDay + 1}</span>
+              <span className="text-slate-400 text-xs font-bold">{currentItin?.trip_date}</span>
+            </div>
+            <h1 className="text-3xl font-black tracking-tight">{group?.name}</h1>
           </div>
-          <h1 className="text-3xl font-black tracking-tight">{group?.name}</h1>
+          <div className="relative w-12 h-12 overflow-hidden rounded-xl border border-white/20 shadow-2xl">
+            <Image 
+              src="/logo.png" 
+              alt="Logo" 
+              fill
+              className="object-cover"
+            />
+          </div>
         </div>
       </div>
 

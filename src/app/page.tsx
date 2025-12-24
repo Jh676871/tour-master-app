@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { Plus, Navigation, Users, CheckSquare, LayoutGrid, FileText, Loader2, Hotel, Map as MapIcon } from 'lucide-react';
 import Link from 'next/link';
 import GroupCard from '@/components/GroupCard';
@@ -84,8 +85,13 @@ export default function Home() {
       <header className="bg-slate-900 border-b border-slate-800 shadow-2xl sticky top-0 z-30 backdrop-blur-md bg-opacity-90">
         <div className="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="bg-blue-600 p-3 rounded-[1.25rem] shadow-[0_0_30px_rgba(37,99,235,0.3)] border border-blue-400">
-              <Navigation className="w-8 h-8 text-white" />
+            <div className="relative w-14 h-14 overflow-hidden rounded-[1.25rem] shadow-[0_0_30px_rgba(37,99,235,0.3)] border border-blue-400/50">
+              <Image 
+                src="/logo.png" 
+                alt="TourMaster Logo" 
+                fill
+                className="object-cover"
+              />
             </div>
             <div>
               <h1 className="text-2xl font-black tracking-tighter text-white uppercase leading-none">
