@@ -17,10 +17,12 @@ import {
   FileText,
   X,
   Check,
-  Edit2
+  Edit2,
+  Settings,
+  RefreshCw
 } from 'lucide-react';
 import Link from 'next/link';
-import { LeaderLedger } from '@/types/database';
+import { LeaderLedger, GroupCurrencySetting } from '@/types/database';
 import { createWorker } from 'tesseract.js';
 
 export default function LedgerPage() {
@@ -30,12 +32,19 @@ export default function LedgerPage() {
 
   const [loading, setLoading] = useState(true);
   const [ledgers, setLedgers] = useState<LeaderLedger[]>([]);
+  const [currencySettings, setCurrencySettings] = useState<GroupCurrencySetting[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [processingOCR, setProcessingOCR] = useState(false);
   const [ledgerToDelete, setLedgerToDelete] = useState<string | null>(null);
   const [editingLedgerId, setEditingLedgerId] = useState<string | null>(null);
 
-  // Form State
+  // Settings Form State
+  const [settingsFormData, setSettingsFormData] = useState({
+    currency: 'USD',
+    exchange_rate: '',
+    initial_balance: ''
+  });
   const [formData, setFormData] = useState<{
     type: 'income' | 'expense';
     title: string;
@@ -63,46 +72,127 @@ export default function LedgerPage() {
   
   // Stats
   const stats = React.useMemo(() => {
-    let totalIncome = 0;
-    let totalExpense = 0;
+    const balances: Record<string, { income: number, expense: number, initial: number, current: number, rate: number }> = {};
+    
+    // Initialize from settings
+    currencySettings.forEach(s => {
+      balances[s.currency] = {
+        income: 0,
+        expense: 0,
+        initial: s.initial_balance || 0,
+        current: s.initial_balance || 0,
+        rate: s.exchange_rate || 1
+      };
+    });
+
+    // Ensure TWD exists
+    if (!balances['TWD']) {
+      balances['TWD'] = { income: 0, expense: 0, initial: 0, current: 0, rate: 1 };
+    }
 
     ledgers.forEach(l => {
-      const amountTWD = l.amount * l.exchange_rate;
+      const curr = l.currency;
+      if (!balances[curr]) {
+        // New currency found in ledger but not in settings
+        balances[curr] = {
+          income: 0,
+          expense: 0,
+          initial: 0,
+          current: 0,
+          rate: l.exchange_rate || 1 // Fallback to transaction rate
+        };
+      }
+
       if (l.type === 'income') {
-        totalIncome += amountTWD;
+        balances[curr].income += l.amount;
+        balances[curr].current += l.amount;
       } else {
-        totalExpense += amountTWD;
+        balances[curr].expense += l.amount;
+        balances[curr].current -= l.amount;
       }
     });
 
+    // Calculate Total Assets in TWD
+    let totalAssetsTWD = 0;
+    Object.values(balances).forEach(b => {
+      totalAssetsTWD += b.current * b.rate;
+    });
+
     return {
-      totalIncome,
-      totalExpense,
-      remaining: totalIncome - totalExpense
+      balances,
+      totalAssetsTWD
     };
-  }, [ledgers]);
+  }, [ledgers, currencySettings]);
 
   useEffect(() => {
-    fetchLedgers();
+    fetchData();
   }, [groupId]);
 
-  const fetchLedgers = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('leader_ledger')
-        .select('*')
-        .eq('group_id', groupId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      if (data) setLedgers(data);
+      await Promise.all([fetchLedgers(), fetchCurrencySettings()]);
     } catch (error: any) {
-      console.error('Error fetching ledgers:', error);
+      console.error('Error fetching data:', error);
       alert('載入失敗: ' + error.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchCurrencySettings = async () => {
+    const { data, error } = await supabase
+      .from('group_currency_settings')
+      .select('*')
+      .eq('group_id', groupId);
+    
+    if (error) throw error;
+    if (data) setCurrencySettings(data);
+  };
+
+  const fetchLedgers = async () => {
+    const { data, error } = await supabase
+      .from('leader_ledger')
+      .select('*')
+      .eq('group_id', groupId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    if (data) setLedgers(data);
+  };
+
+  const handleSettingsSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('group_currency_settings')
+        .upsert({
+          group_id: groupId,
+          currency: settingsFormData.currency,
+          exchange_rate: parseFloat(settingsFormData.exchange_rate),
+          initial_balance: parseFloat(settingsFormData.initial_balance || '0')
+        }, { onConflict: 'group_id,currency' });
+
+      if (error) throw error;
+      
+      await fetchCurrencySettings();
+      setSettingsFormData({ currency: '', exchange_rate: '', initial_balance: '' });
+      // Don't close modal immediately to allow adding more? Or maybe close.
+      // Let's keep it open or just reset form.
+    } catch (error: any) {
+      alert('儲存失敗: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditSettings = (setting: GroupCurrencySetting) => {
+    setSettingsFormData({
+      currency: setting.currency,
+      exchange_rate: setting.exchange_rate.toString(),
+      initial_balance: setting.initial_balance.toString()
+    });
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -298,37 +388,70 @@ export default function LedgerPage() {
       </header>
 
       <div className="max-w-4xl mx-auto p-6 space-y-8">
-        {/* Dashboard Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-10">
-              <TrendingUp className="w-24 h-24 text-green-500" />
+        {/* Total Assets Card */}
+        <div className="bg-blue-600 p-8 rounded-[2.5rem] relative overflow-hidden shadow-xl shadow-blue-900/40">
+          <div className="absolute -right-8 -top-8 p-4 opacity-20">
+            <Wallet className="w-48 h-48 text-white" />
+          </div>
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-blue-200 font-bold uppercase tracking-widest text-xs">總資產估算 (台幣)</p>
+              <button 
+                onClick={() => setShowSettingsModal(true)}
+                className="bg-blue-500/50 hover:bg-blue-500 p-2 rounded-lg text-white transition-colors"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
             </div>
-            <p className="text-slate-500 font-bold uppercase tracking-widest text-xs mb-2">預付款總額 (Income)</p>
-            <p className="text-3xl font-black text-green-400">
-              ${stats.totalIncome.toLocaleString()}
+            <p className="text-5xl font-black text-white tracking-tight">
+              NT$ {Math.round(stats.totalAssetsTWD).toLocaleString()}
             </p>
           </div>
+        </div>
 
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-10">
-              <TrendingDown className="w-24 h-24 text-red-500" />
+        {/* Currency Cards Scroll */}
+        <div className="flex gap-4 overflow-x-auto pb-4 -mx-6 px-6 scrollbar-hide">
+          {Object.entries(stats.balances).map(([curr, balance]) => (
+            <div key={curr} className="min-w-[280px] bg-slate-900 border border-slate-800 p-6 rounded-[2rem] relative flex-shrink-0">
+              <div className="flex justify-between items-start mb-4">
+                <div className="bg-slate-800 px-3 py-1 rounded-full text-xs font-bold text-slate-400">
+                  匯率: {balance.rate}
+                </div>
+                <div className="text-2xl font-black text-white">{curr}</div>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-bold text-slate-500 uppercase">初始/預付</span>
+                  <span className="font-bold text-green-400">+{balance.initial.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-bold text-slate-500 uppercase">收入</span>
+                  <span className="font-bold text-green-400">+{balance.income.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-bold text-slate-500 uppercase">支出</span>
+                  <span className="font-bold text-red-400">-{balance.expense.toLocaleString()}</span>
+                </div>
+                <div className="h-px bg-slate-800 my-2"></div>
+                <div className="flex justify-between items-end">
+                  <span className="text-xs font-bold text-slate-400 uppercase mb-1">目前結餘</span>
+                  <span className="text-2xl font-black text-white">{balance.current.toLocaleString()}</span>
+                </div>
+              </div>
             </div>
-            <p className="text-slate-500 font-bold uppercase tracking-widest text-xs mb-2">已支出總額 (Expense)</p>
-            <p className="text-3xl font-black text-red-400">
-              ${stats.totalExpense.toLocaleString()}
-            </p>
-          </div>
-
-          <div className="bg-blue-600 p-6 rounded-[2rem] relative overflow-hidden shadow-lg shadow-blue-900/40">
-            <div className="absolute top-0 right-0 p-4 opacity-20">
-              <Wallet className="w-24 h-24 text-white" />
+          ))}
+          
+          {/* Add Currency Button Card */}
+          <button 
+            onClick={() => setShowSettingsModal(true)}
+            className="min-w-[100px] bg-slate-900/50 border-2 border-dashed border-slate-800 hover:border-blue-500 hover:bg-slate-900 p-6 rounded-[2rem] flex flex-col items-center justify-center gap-2 text-slate-500 hover:text-blue-500 transition-all flex-shrink-0"
+          >
+            <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center">
+              <Plus className="w-6 h-6" />
             </div>
-            <p className="text-blue-200 font-bold uppercase tracking-widest text-xs mb-2">目前剩餘現金</p>
-            <p className="text-4xl font-black text-white">
-              ${stats.remaining.toLocaleString()}
-            </p>
-          </div>
+            <span className="font-bold text-sm">新增幣別</span>
+          </button>
         </div>
 
         {/* Actions */}
@@ -409,6 +532,88 @@ export default function LedgerPage() {
         </div>
       </div>
 
+      {/* Settings Modal */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-6">
+          <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm" onClick={() => setShowSettingsModal(false)}></div>
+          <div className="bg-slate-900 border-t sm:border border-slate-800 w-full max-w-lg sm:rounded-[2.5rem] rounded-t-[2.5rem] shadow-2xl relative z-10 overflow-hidden animate-in slide-in-from-bottom duration-200">
+            <div className="p-8 space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-black">匯率與初始資金設定</h2>
+                <button onClick={() => setShowSettingsModal(false)} className="p-2 bg-slate-800 rounded-full text-slate-400 hover:text-white">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {/* List Existing */}
+              <div className="space-y-3">
+                {currencySettings.map(setting => (
+                  <div key={setting.id} onClick={() => handleEditSettings(setting)} className="bg-slate-800 p-4 rounded-xl flex items-center justify-between cursor-pointer hover:bg-slate-700 transition-colors">
+                    <div>
+                      <div className="font-black text-white">{setting.currency}</div>
+                      <div className="text-xs text-slate-400">匯率: {setting.exchange_rate}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold text-green-400">初始: {setting.initial_balance}</div>
+                      <div className="text-xs text-slate-500">點擊編輯</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="h-px bg-slate-800"></div>
+
+              <form onSubmit={handleSettingsSubmit} className="space-y-4">
+                <h3 className="font-bold text-slate-400">新增/更新 幣別設定</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">幣別代碼</label>
+                    <input
+                      type="text"
+                      required
+                      value={settingsFormData.currency}
+                      onChange={(e) => setSettingsFormData({...settingsFormData, currency: e.target.value.toUpperCase()})}
+                      className="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl px-4 py-3 focus:border-blue-500 focus:outline-none font-black text-lg"
+                      placeholder="USD"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">對台幣匯率</label>
+                    <input
+                      type="number"
+                      required
+                      step="0.0001"
+                      value={settingsFormData.exchange_rate}
+                      onChange={(e) => setSettingsFormData({...settingsFormData, exchange_rate: e.target.value})}
+                      className="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl px-4 py-3 focus:border-blue-500 focus:outline-none font-black text-lg"
+                      placeholder="32.5"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">初始資金 (預付款)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={settingsFormData.initial_balance}
+                    onChange={(e) => setSettingsFormData({...settingsFormData, initial_balance: e.target.value})}
+                    className="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl px-4 py-3 focus:border-blue-500 focus:outline-none font-black text-lg"
+                    placeholder="0.00"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white py-4 rounded-2xl font-black text-lg shadow-lg shadow-blue-900/40 transition-all"
+                >
+                  {loading ? '儲存中...' : '儲存設定'}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Add Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-6">
@@ -461,21 +666,72 @@ export default function LedgerPage() {
                         step="0.01"
                       />
                     </div>
+                    {formData.currency !== 'TWD' && formData.amount && (
+                      <div className="text-right text-xs font-bold text-slate-500 mt-1">
+                        約 NT$ {Math.round(parseFloat(formData.amount || '0') * parseFloat(formData.exchange_rate || '0')).toLocaleString()}
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">幣別</label>
                     <select
                       value={formData.currency}
-                      onChange={(e) => setFormData({...formData, currency: e.target.value})}
+                      onChange={(e) => {
+                        const newCurrency = e.target.value;
+                        const setting = currencySettings.find(s => s.currency === newCurrency);
+                        setFormData({
+                          ...formData, 
+                          currency: newCurrency,
+                          exchange_rate: setting ? setting.exchange_rate.toString() : (newCurrency === 'TWD' ? '1' : formData.exchange_rate)
+                        });
+                      }}
                       className="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl px-4 py-4 focus:border-blue-500 focus:outline-none font-bold text-lg"
                     >
                       <option value="TWD">TWD 台幣</option>
-                      <option value="JPY">JPY 日幣</option>
-                      <option value="USD">USD 美金</option>
-                      <option value="EUR">EUR 歐元</option>
+                      {currencySettings.filter(s => s.currency !== 'TWD').map(s => (
+                        <option key={s.id} value={s.currency}>{s.currency}</option>
+                      ))}
+                      {!currencySettings.some(s => s.currency === 'JPY') && <option value="JPY">JPY 日幣</option>}
+                      {!currencySettings.some(s => s.currency === 'USD') && <option value="USD">USD 美金</option>}
+                      {!currencySettings.some(s => s.currency === 'EUR') && <option value="EUR">EUR 歐元</option>}
                     </select>
                   </div>
                 </div>
+
+                {/* Exchange Rate (Visible only for foreign currency) */}
+                {formData.currency !== 'TWD' && (
+                  <div className="bg-slate-800/50 p-4 rounded-2xl space-y-2 border border-slate-800">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">
+                        當下匯率 (預設為固定匯率)
+                      </label>
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          const setting = currencySettings.find(s => s.currency === formData.currency);
+                          if (setting) setFormData({...formData, exchange_rate: setting.exchange_rate.toString()});
+                        }}
+                        className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                      >
+                        <RefreshCw className="w-3 h-3" /> 重置
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="font-bold text-slate-400">1 {formData.currency} ≈</span>
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold">NT$</span>
+                        <input
+                          type="number"
+                          step="0.0001"
+                          required
+                          value={formData.exchange_rate}
+                          onChange={(e) => setFormData({...formData, exchange_rate: e.target.value})}
+                          className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-2 focus:border-blue-500 focus:outline-none font-bold"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Title */}
                 <div className="space-y-2">

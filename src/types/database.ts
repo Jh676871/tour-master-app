@@ -101,3 +101,12 @@ export interface LeaderLedger {
   receipt_url?: string;
   created_at: string;
 }
+
+export interface GroupCurrencySetting {
+  id: string;
+  group_id: string;
+  currency: string;
+  exchange_rate: number;
+  initial_balance: number;
+  created_at: string;
+}
