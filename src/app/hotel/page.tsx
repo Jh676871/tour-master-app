@@ -247,10 +247,10 @@ export default function HotelSettingsPage() {
         <div className="flex items-center gap-3">
           <Link 
             href="/hotels"
-            className="bg-slate-800 hover:bg-slate-700 text-green-400 px-4 py-2 rounded-xl font-black transition-all flex items-center gap-2 text-sm"
+            title="飯店資料庫"
+            className="bg-slate-800 hover:bg-slate-700 text-green-400 w-12 h-12 rounded-xl font-black transition-all flex items-center justify-center"
           >
-            <HotelIcon className="w-5 h-5" />
-            飯店資料庫
+            <HotelIcon className="w-6 h-6" />
           </Link>
           <button 
             onClick={() => {
@@ -260,10 +260,10 @@ export default function HotelSettingsPage() {
                 .catch(err => alert('部分儲存失敗: ' + err.message))
                 .finally(() => setSaving(false));
             }}
-            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl font-black transition-all flex items-center gap-2 text-sm shadow-lg shadow-blue-900/40"
+            title="全部儲存"
+            className="bg-blue-600 hover:bg-blue-500 text-white w-12 h-12 rounded-xl font-black transition-all flex items-center justify-center shadow-lg shadow-blue-900/40"
           >
-            <Save className="w-5 h-5" />
-            全部儲存
+            <Save className="w-6 h-6" />
           </button>
         </div>
       </header>
@@ -283,10 +283,10 @@ export default function HotelSettingsPage() {
           </div>
           <button 
             onClick={() => setShowAddHotel(true)}
-            className="mt-6 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-black flex items-center gap-2 transition-all active:scale-95"
+            title="新增飯店"
+            className="mt-6 bg-blue-600 hover:bg-blue-500 text-white w-12 h-12 rounded-xl font-black flex items-center justify-center transition-all active:scale-95 shadow-lg shadow-blue-900/40"
           >
-            <Plus className="w-5 h-5" />
-            新增飯店
+            <Plus className="w-6 h-6" />
           </button>
         </div>
 
@@ -299,10 +299,10 @@ export default function HotelSettingsPage() {
             </h2>
             <button 
               onClick={handleAddItinerary}
-              className="bg-slate-800 hover:bg-slate-700 text-blue-400 px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all"
+              title="新增一日"
+              className="bg-slate-800 hover:bg-slate-700 text-blue-400 w-12 h-12 rounded-xl font-bold flex items-center justify-center transition-all"
             >
-              <Plus className="w-4 h-4" />
-              新增一日
+              <Plus className="w-6 h-6" />
             </button>
           </div>
 
