@@ -161,6 +161,17 @@ export default function TravelerLIFFPage() {
   if (!traveler) {
     return (
       <main className="min-h-screen bg-slate-950 text-white p-6 flex flex-col items-center justify-center">
+        {/* Debug Info: LINE User ID Verification */}
+        {userId && (
+          <div className="fixed top-4 left-4 right-4 z-50 bg-slate-900/80 backdrop-blur-md border border-slate-700 p-3 rounded-xl flex items-center gap-3">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+            <p className="text-[10px] font-mono text-slate-400 break-all">
+              <span className="text-blue-400 font-black mr-2">LINE ID:</span>
+              {userId}
+            </p>
+          </div>
+        )}
+
         <div className="w-full max-w-md space-y-8">
           <div className="text-center space-y-4">
             <div className="bg-blue-600 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto shadow-2xl shadow-blue-900/40 border border-blue-400">
@@ -216,6 +227,17 @@ export default function TravelerLIFFPage() {
   // Case 2: Dashboard (Bound)
   return (
     <main className="min-h-screen bg-slate-950 text-white">
+      {/* Debug Info: LINE User ID Verification */}
+      {userId && (
+        <div className="bg-slate-900/30 border-b border-slate-800 px-6 py-1 flex items-center gap-2">
+          <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+          <p className="text-[9px] font-mono text-slate-500 break-all">
+            <span className="text-slate-600 font-bold mr-1">LINE UID:</span>
+            {userId}
+          </p>
+        </div>
+      )}
+
       {/* Top Welcome Bar */}
       <div className="bg-slate-900/50 border-b border-slate-800 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">

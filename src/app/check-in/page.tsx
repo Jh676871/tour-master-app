@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { CheckCircle2, Circle, ArrowLeft, Loader2, Search, MapPin, Users, Bell, Send, CheckCircle } from 'lucide-react';
+import { CheckCircle2, Circle, ArrowLeft, Loader2, Search, MapPin, Users, Bell, Send, CheckCircle, Smartphone } from 'lucide-react';
 import Link from 'next/link';
 
 interface Traveler {
@@ -21,6 +21,7 @@ export default function CheckInPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [locationName, setLocationName] = useState('集合點');
   const [nudging, setNudging] = useState<string | null>(null);
+  const [sendingRoom, setSendingRoom] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -125,6 +126,33 @@ export default function CheckInPage() {
       // Revert optimistic update
       fetchData();
       alert('操作失敗，請稍後再試');
+    }
+  };
+
+  const sendRoomInfo = async (traveler: Traveler) => {
+    if (!traveler.line_uid) {
+      alert('該旅客尚未綁定 LINE，無法發送訊息。');
+      return;
+    }
+
+    setSendingRoom(traveler.id);
+    try {
+      const response = await fetch('/api/line/send-room', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ travelerId: traveler.id })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        alert(`房號資訊已發送給 ${traveler.full_name}`);
+      } else {
+        alert(`發送失敗: ${data.error}`);
+      }
+    } catch (error) {
+      alert('發送發生錯誤');
+    } finally {
+      setSendingRoom(null);
     }
   };
 
@@ -282,23 +310,44 @@ export default function CheckInPage() {
                         <Circle className="w-8 h-8 text-slate-600" />
                       </button>
 
-                      {/* 催促按鈕 */}
-                      <button
-                        onClick={() => handleNudge(traveler)}
-                        disabled={nudging === traveler.id}
-                        className={`w-14 h-[84px] rounded-[1.5rem] flex items-center justify-center transition-all active:scale-90 border-2 ${
-                          traveler.line_uid 
-                            ? 'bg-orange-500/10 border-orange-500/30 text-orange-400 hover:bg-orange-500/20' 
-                            : 'bg-slate-800/50 border-slate-700 text-slate-600 cursor-not-allowed'
-                        }`}
-                        title={traveler.line_uid ? "一鍵催促" : "尚未綁定 LINE"}
-                      >
-                        {nudging === traveler.id ? (
-                          <Loader2 className="w-6 h-6 animate-spin" />
-                        ) : (
-                          <Send className="w-6 h-6" />
-                        )}
-                      </button>
+                      {/* 操作按鈕組 */}
+                      <div className="flex flex-col gap-2">
+                        {/* 催促按鈕 */}
+                        <button
+                          onClick={() => handleNudge(traveler)}
+                          disabled={nudging === traveler.id}
+                          className={`w-14 h-[42px] rounded-[1.5rem] flex items-center justify-center transition-all active:scale-90 border-2 ${
+                            traveler.line_uid 
+                              ? 'bg-orange-500/10 border-orange-500/30 text-orange-400 hover:bg-orange-500/20' 
+                              : 'bg-slate-800/50 border-slate-700 text-slate-600 cursor-not-allowed'
+                          }`}
+                          title={traveler.line_uid ? "一鍵催促" : "尚未綁定 LINE"}
+                        >
+                          {nudging === traveler.id ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <Send className="w-5 h-5" />
+                          )}
+                        </button>
+                        
+                        {/* 發送房號按鈕 */}
+                        <button
+                          onClick={() => sendRoomInfo(traveler)}
+                          disabled={sendingRoom === traveler.id}
+                          className={`w-14 h-[40px] rounded-[1.5rem] flex items-center justify-center transition-all active:scale-90 border-2 ${
+                            traveler.line_uid 
+                              ? 'bg-blue-500/10 border-blue-500/30 text-blue-400 hover:bg-blue-500/20' 
+                              : 'bg-slate-800/50 border-slate-700 text-slate-600 cursor-not-allowed'
+                          }`}
+                          title={traveler.line_uid ? "發送房號" : "尚未綁定 LINE"}
+                        >
+                          {sendingRoom === traveler.id ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <Smartphone className="w-5 h-5" />
+                          )}
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -316,31 +365,55 @@ export default function CheckInPage() {
                 </div>
                 <div className="grid gap-3 opacity-80">
                   {checkedInTravelers.map((traveler) => (
-                    <button 
+                    <div 
                       key={traveler.id}
-                      onClick={() => toggleCheckIn(traveler.id)}
-                      className="flex items-center justify-between p-5 rounded-[1.5rem] border-2 bg-blue-600 border-blue-400 shadow-[0_10px_30px_rgba(37,99,235,0.1)] transition-all active:scale-[0.96]"
+                      className="flex items-center gap-3"
                     >
-                      <div className="flex items-center gap-5">
-                        <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl transition-all shadow-lg bg-blue-500 text-white">
-                          {traveler.full_name.charAt(0)}
-                        </div>
-                        <div className="text-left">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <div className="font-black text-xl tracking-tight text-white">
-                              {traveler.full_name}
+                      <button 
+                        onClick={() => toggleCheckIn(traveler.id)}
+                        className="flex-1 flex items-center justify-between p-5 rounded-[1.5rem] border-2 bg-blue-600 border-blue-400 shadow-[0_10px_30px_rgba(37,99,235,0.1)] transition-all active:scale-[0.96]"
+                      >
+                        <div className="flex items-center gap-5">
+                          <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl transition-all shadow-lg bg-blue-500 text-white">
+                            {traveler.full_name.charAt(0)}
+                          </div>
+                          <div className="text-left">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <div className="font-black text-xl tracking-tight text-white">
+                                {traveler.full_name}
+                              </div>
+                              <span className="text-[10px] font-black px-2 py-0.5 rounded-full border bg-white/20 text-white border-white/30">
+                                {traveler.gender}
+                              </span>
                             </div>
-                            <span className="text-[10px] font-black px-2 py-0.5 rounded-full border bg-white/20 text-white border-white/30">
-                              {traveler.gender}
-                            </span>
-                          </div>
-                          <div className="font-bold text-xs px-2 py-0.5 rounded-full bg-blue-700 text-blue-100 w-fit">
-                            房號 {traveler.room_number}
+                            <div className="font-bold text-xs px-2 py-0.5 rounded-full bg-blue-700 text-blue-100 w-fit">
+                              房號 {traveler.room_number}
+                            </div>
                           </div>
                         </div>
+                        <CheckCircle2 className="w-8 h-8 text-white fill-current" />
+                      </button>
+
+                      {/* 操作按鈕組 (已報到) */}
+                      <div className="flex flex-col gap-2">
+                        <button
+                          onClick={() => sendRoomInfo(traveler)}
+                          disabled={sendingRoom === traveler.id}
+                          className={`w-14 h-[84px] rounded-[1.5rem] flex items-center justify-center transition-all active:scale-90 border-2 ${
+                            traveler.line_uid 
+                              ? 'bg-blue-500/10 border-blue-400/30 text-white hover:bg-blue-500/20' 
+                              : 'bg-slate-800/50 border-slate-700 text-slate-400 cursor-not-allowed'
+                          }`}
+                          title={traveler.line_uid ? "發送房號" : "尚未綁定 LINE"}
+                        >
+                          {sendingRoom === traveler.id ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <Smartphone className="w-5 h-5" />
+                          )}
+                        </button>
                       </div>
-                      <CheckCircle2 className="w-8 h-8 text-white fill-current" />
-                    </button>
+                    </div>
                   ))}
                 </div>
               </div>

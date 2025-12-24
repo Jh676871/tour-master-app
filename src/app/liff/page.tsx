@@ -4,7 +4,7 @@ import React, { useEffect, useState, Suspense } from 'react';
 import liff from '@line/liff';
 import { supabase } from '@/lib/supabase';
 import { Loader2, CheckCircle2, AlertCircle, User } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 function LiffContent() {
   const [loading, setLoading] = useState(true);
@@ -14,8 +14,14 @@ function LiffContent() {
   
   const searchParams = useSearchParams();
   const name = searchParams.get('name');
+  const router = useRouter();
 
   useEffect(() => {
+    // 如果沒有參數，直接導向到新的旅客首頁
+    if (!name) {
+      window.location.href = '/traveler';
+      return;
+    }
     const initLiff = async () => {
       try {
         await liff.init({ liffId: process.env.NEXT_PUBLIC_LIFF_ID || '' });

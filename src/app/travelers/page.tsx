@@ -26,7 +26,19 @@ export default function TravelersPage() {
   const [fetching, setFetching] = useState(true);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [travelers, setTravelers] = useState<Traveler[]>([]);
+  const [groups, setGroups] = useState<{id: string, group_code: string, name: string}[]>([]);
+  const [selectedGroupId, setSelectedGroupId] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const fetchGroups = async () => {
+    const { data, error } = await supabase
+      .from('groups')
+      .select('id, group_code, name');
+    if (data && data.length > 0) {
+      setGroups(data);
+      setSelectedGroupId(data[0].id);
+    }
+  };
 
   const fetchTravelers = async () => {
     try {
@@ -98,6 +110,7 @@ export default function TravelersPage() {
   };
 
   useEffect(() => {
+    fetchGroups();
     fetchTravelers();
   }, []);
 
@@ -111,7 +124,8 @@ export default function TravelersPage() {
     try {
       const insertData: any = { 
         full_name: name, 
-        room_number: roomNumber
+        room_number: roomNumber,
+        group_id: selectedGroupId
       };
 
       // Only add these if we're sure the DB has them, or just try and handle error
@@ -179,11 +193,20 @@ export default function TravelersPage() {
             return key ? row[key] : null;
           };
 
+          const rowGroupCode = getValue(['團體代碼', 'group_code', 'code']);
+          // Find matching group ID if code is provided in Excel
+          let rowGroupId = selectedGroupId;
+          if (rowGroupCode) {
+            const matchedGroup = groups.find(g => g.group_code === String(rowGroupCode).trim());
+            if (matchedGroup) rowGroupId = matchedGroup.id;
+          }
+
           return {
             full_name: getValue(['姓名', 'name', 'full_name', '旅客姓名']) || '',
             room_number: String(getValue(['房號', 'room', 'room_number', '房間號碼']) || ''),
             gender: getValue(['性別', 'gender', 'sex']) || '男',
-            dietary_needs: getValue(['飲食需求', 'diet', 'dietary_needs', '備註']) || '無'
+            dietary_needs: getValue(['飲食需求', 'diet', 'dietary_needs', '備註']) || '無',
+            group_id: rowGroupId
           };
         }).filter(item => item.full_name && item.full_name.trim() !== '');
 
@@ -225,8 +248,8 @@ export default function TravelersPage() {
 
   const downloadTemplate = () => {
     const template = [
-      { '姓名': '王大明', '房號': '101', '性別': '男', '飲食需求': '無' },
-      { '姓名': '李小華', '房號': '102', '性別': '女', '飲食需求': '蛋奶素' }
+      { '姓名': '王大明', '房號': '101', '性別': '男', '飲食需求': '無', '團體代碼': groups.find(g => g.id === selectedGroupId)?.group_code || 'TM2025' },
+      { '姓名': '李小華', '房號': '102', '性別': '女', '飲食需求': '蛋奶素', '團體代碼': groups.find(g => g.id === selectedGroupId)?.group_code || 'TM2025' }
     ];
     const ws = XLSX.utils.json_to_sheet(template);
     const wb = XLSX.utils.book_new();
@@ -386,6 +409,22 @@ export default function TravelersPage() {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="block text-xs font-black text-slate-500 uppercase tracking-[0.2em] ml-1">團體代碼</label>
+                  <select 
+                    value={selectedGroupId}
+                    onChange={(e) => setSelectedGroupId(e.target.value)}
+                    className="w-full px-6 py-4 bg-slate-900 border-2 border-slate-700 rounded-2xl focus:outline-none focus:border-blue-500 text-lg font-bold transition-all shadow-inner appearance-none text-white"
+                    required
+                  >
+                    {groups.map(group => (
+                      <option key={group.id} value={group.id}>
+                        {group.group_code} ({group.name})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="space-y-2">
                   <label className="block text-xs font-black text-slate-500 uppercase tracking-[0.2em] ml-1">旅客姓名</label>
                   <input 

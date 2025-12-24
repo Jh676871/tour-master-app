@@ -86,6 +86,12 @@ export default function HotelSettingsPage() {
           .eq('id', group.id);
 
         if (error) throw error;
+
+        // 自動關聯尚未設定團體的旅客
+        await supabase
+          .from('travelers')
+          .update({ group_id: group.id })
+          .is('group_id', null);
       } else {
         const { data, error } = await supabase
           .from('groups')
@@ -101,6 +107,12 @@ export default function HotelSettingsPage() {
 
         if (error) throw error;
         setGroup(data);
+
+        // 自動關聯所有旅客到新建立的團體
+        await supabase
+          .from('travelers')
+          .update({ group_id: data.id })
+          .is('group_id', null);
       }
 
       setSuccess(true);
