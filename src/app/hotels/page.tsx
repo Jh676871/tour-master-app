@@ -43,7 +43,8 @@ export default function HotelsPage() {
     breakfast_info: '',
     gym_pool_info: '',
     guide_notes: '',
-    image_url: ''
+    image_url: '',
+    nearby_medical: ''
   });
 
   useEffect(() => {
@@ -84,7 +85,8 @@ export default function HotelsPage() {
         breakfast_info: hotel.breakfast_info || '',
         gym_pool_info: hotel.gym_pool_info || '',
         guide_notes: hotel.guide_notes || '',
-        image_url: hotel.image_url || ''
+        image_url: hotel.image_url || '',
+        nearby_medical: hotel.nearby_medical || ''
       });
     } else {
       setEditingHotel(null);
@@ -97,7 +99,8 @@ export default function HotelsPage() {
         breakfast_info: '',
         gym_pool_info: '',
         guide_notes: '',
-        image_url: ''
+        image_url: '',
+        nearby_medical: ''
       });
     }
     setIsModalOpen(true);
@@ -501,15 +504,29 @@ export default function HotelsPage() {
 
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 ml-1">
-                    <StickyNote className="w-4 h-4 text-yellow-400" />
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">導遊筆記 / 注意事項</label>
+                    <StickyNote className="w-4 h-4 text-emerald-400" />
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">領隊備註</label>
                   </div>
                   <textarea 
                     value={formData.guide_notes}
                     onChange={(e) => setFormData({...formData, guide_notes: e.target.value})}
-                    rows={3}
+                    rows={2}
                     className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none"
-                    placeholder="例如：電梯分流時間、行李集中區域、附近有全家便利商店..."
+                    placeholder="只有領隊看得到的私密備註..."
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 ml-1">
+                    <Building2 className="w-4 h-4 text-red-400" />
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">附近醫療機構</label>
+                  </div>
+                  <textarea 
+                    value={formData.nearby_medical}
+                    onChange={(e) => setFormData({...formData, nearby_medical: e.target.value})}
+                    rows={2}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                    placeholder="例如：最近的 24H 急診醫院名稱與電話..."
                   />
                 </div>
               </div>

@@ -27,7 +27,9 @@ import {
   Wand2,
   Sparkles,
   Copy,
-  Navigation
+  Navigation,
+  UtensilsCrossed,
+  LayoutList
 } from 'lucide-react';
 import Link from 'next/link';
 import { Group, Hotel, Itinerary, Traveler, TravelerRoom, Spot } from '@/types/database';
@@ -49,6 +51,7 @@ export default function GroupEditPage() {
   const [itinerarySpots, setItinerarySpots] = useState<Record<string, any[]>>({}); // { itineraryId: spotObjects[] }
   const [travelers, setTravelers] = useState<Traveler[]>([]);
   const [roomMappings, setRoomMappings] = useState<Record<string, Record<string, string>>>({}); // { itineraryId: { travelerId: roomNumber } }
+  const [tables, setTables] = useState<Record<string, any[]>>({}); // { itinerarySpotId: tables[] }
 
   // Search & Filter
   const [hotelSearchTerm, setHotelSearchTerm] = useState('');
@@ -60,6 +63,8 @@ export default function GroupEditPage() {
 
   // UI State
   const [activeDayIndex, setActiveDayIndex] = useState(0);
+  const [activeSpotForTable, setActiveSpotForTable] = useState<any>(null);
+  const [showTableModal, setShowTableModal] = useState(false);
 
   // AI Helper
   const handleAIAutoFill = async () => {
@@ -111,6 +116,78 @@ export default function GroupEditPage() {
     
     setItineraries(updated);
     setIsAIPolishing(false);
+  };
+
+  const handleAddTable = async () => {
+    if (!activeSpotForTable) return;
+    const key = `${activeSpotForTable.itinerary_id}_${activeSpotForTable.spot_id}`;
+    const currentTables = tables[key] || [];
+    const nextNum = currentTables.length + 1;
+    
+    const newTable = {
+      itinerary_id: activeSpotForTable.itinerary_id,
+      spot_id: activeSpotForTable.spot_id,
+      table_number: nextNum.toString(),
+      capacity: 10,
+      traveler_ids: [],
+      notes: ''
+    };
+
+    try {
+      const { data, error } = await supabase
+        .from('itinerary_spot_tables')
+        .insert(newTable)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      setTables(prev => ({
+        ...prev,
+        [key]: [...currentTables, data]
+      }));
+    } catch (error: any) {
+      alert(`新增桌位失敗: ${error.message}`);
+    }
+  };
+
+  const handleUpdateTable = async (tableId: string, updates: any) => {
+    try {
+      const { error } = await supabase
+        .from('itinerary_spot_tables')
+        .update(updates)
+        .eq('id', tableId);
+      
+      if (error) throw error;
+      
+      const key = `${activeSpotForTable.itinerary_id}_${activeSpotForTable.spot_id}`;
+      setTables(prev => ({
+        ...prev,
+        [key]: prev[key].map(t => t.id === tableId ? { ...t, ...updates } : t)
+      }));
+    } catch (error: any) {
+      alert(`更新桌位失敗: ${error.message}`);
+    }
+  };
+
+  const handleDeleteTable = async (tableId: string) => {
+    if (!confirm('確定要刪除此桌位嗎？')) return;
+    try {
+      const { error } = await supabase
+        .from('itinerary_spot_tables')
+        .delete()
+        .eq('id', tableId);
+      
+      if (error) throw error;
+      
+      const key = `${activeSpotForTable.itinerary_id}_${activeSpotForTable.spot_id}`;
+      setTables(prev => ({
+        ...prev,
+        [key]: prev[key].filter(t => t.id !== tableId)
+      }));
+    } catch (error: any) {
+      alert(`刪除桌位失敗: ${error.message}`);
+    }
   };
 
   const handleAddSpotToItinerary = async (spot: Spot) => {
@@ -318,7 +395,30 @@ export default function GroupEditPage() {
           });
           setRoomMappings(mapping);
         }
-      } catch (error: any) {
+      // Fetch Travelers
+          const { data: travelerData } = await supabase
+            .from('travelers')
+            .select('*')
+            .eq('group_id', groupId)
+            .order('full_name', { ascending: true });
+          
+          if (travelerData) setTravelers(travelerData);
+
+          // Fetch Tables
+          const { data: tableData } = await supabase
+            .from('itinerary_spot_tables')
+            .select('*');
+          
+          if (tableData) {
+            const tableMap: Record<string, any[]> = {};
+            tableData.forEach(t => {
+              const key = `${t.itinerary_id}_${t.spot_id}`;
+              if (!tableMap[key]) tableMap[key] = [];
+              tableMap[key].push(t);
+            });
+            setTables(tableMap);
+          }
+        } catch (error: any) {
         if (error.name !== 'AbortError' && !error.message?.includes('AbortError')) {
           console.error('Error fetching data:', error.message || error);
           setMessage({ type: 'error', text: error.message || '讀取資料失敗' });
@@ -886,6 +986,23 @@ export default function GroupEditPage() {
                               </div>
 
                               <div className="flex items-center gap-2 opacity-0 group-hover/spot:opacity-100 transition-opacity">
+                                <button
+                                  onClick={() => {
+                                    setActiveSpotForTable(itinSpot);
+                                    setShowTableModal(true);
+                                  }}
+                                  className="p-2 bg-slate-800 hover:bg-slate-700 text-orange-400 rounded-xl transition-all"
+                                  title="桌位配置"
+                                >
+                                  <UtensilsCrossed className="w-4 h-4" />
+                                </button>
+                                <Link
+                                  href={`/groups/${groupId}/dining/${itinSpot.spot_id}?itineraryId=${itinSpot.itinerary_id}`}
+                                  className="p-2 bg-slate-800 hover:bg-slate-700 text-purple-400 rounded-xl transition-all"
+                                  title="餐廳經理摘要"
+                                >
+                                  <LayoutList className="w-4 h-4" />
+                                </Link>
                                 {itinSpot.spot?.google_map_url && (
                                   <a 
                                     href={itinSpot.spot.google_map_url}
@@ -1049,7 +1166,133 @@ export default function GroupEditPage() {
             </section>
           </div>
         </div>
-      </main>
+        {/* Table Management Modal */}
+      {showTableModal && activeSpotForTable && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setShowTableModal(false)}></div>
+          <div className="relative bg-slate-900 border-2 border-slate-800 rounded-[3rem] p-8 w-full max-w-5xl shadow-2xl flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h3 className="text-2xl font-black flex items-center gap-3 text-orange-400">
+                  <UtensilsCrossed className="w-8 h-8" /> {activeSpotForTable.spot?.name} 桌位配置
+                </h3>
+                <p className="text-slate-500 font-bold mt-1">預先排定餐桌，方便抵達後快速入座</p>
+              </div>
+              <button 
+                onClick={handleAddTable}
+                className="bg-orange-600 hover:bg-orange-500 text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 transition-all shadow-lg shadow-orange-900/40"
+              >
+                <Plus className="w-5 h-5" /> 新增桌位
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-slate-700">
+              <div className="flex gap-6 min-h-[400px]">
+                {(tables[`${activeSpotForTable.itinerary_id}_${activeSpotForTable.spot_id}`] || []).map((table, tIdx) => (
+                  <div key={table.id} className="w-80 shrink-0 bg-slate-950 border-2 border-slate-800 rounded-[2rem] p-6 flex flex-col">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-2">
+                        <div className="w-10 h-10 rounded-xl bg-orange-600/20 text-orange-400 flex items-center justify-center font-black">
+                          {table.table_number}
+                        </div>
+                        <span className="font-black text-lg">號桌</span>
+                      </div>
+                      <button 
+                        onClick={() => handleDeleteTable(table.id)}
+                        className="p-2 hover:bg-red-500/10 text-slate-600 hover:text-red-500 rounded-lg transition-all"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="flex-1 space-y-3 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
+                      {table.traveler_ids.map((tid: string) => {
+                        const traveler = travelers.find(t => t.id === tid);
+                        if (!traveler) return null;
+                        return (
+                          <div key={tid} className="flex items-center justify-between p-3 bg-slate-900 rounded-xl border border-slate-800 group/item">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-sm">{traveler.full_name}</span>
+                              {traveler.dietary_needs && traveler.dietary_needs !== '無' && (
+                                <span className="bg-red-500/20 text-red-400 text-[8px] font-black px-1.5 py-0.5 rounded uppercase">
+                                  {traveler.dietary_needs}
+                                </span>
+                              )}
+                            </div>
+                            <button 
+                              onClick={() => {
+                                const newIds = table.traveler_ids.filter((id: string) => id !== tid);
+                                handleUpdateTable(table.id, { traveler_ids: newIds });
+                              }}
+                              className="opacity-0 group-hover/item:opacity-100 p-1 hover:text-red-500 transition-all"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                      
+                      {table.traveler_ids.length === 0 && (
+                        <div className="h-32 border-2 border-dashed border-slate-800 rounded-2xl flex items-center justify-center text-slate-600 text-xs font-bold text-center p-4">
+                          點擊下方選擇團員<br/>加入此桌
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-6 pt-6 border-t border-slate-800">
+                      <select 
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm font-bold outline-none focus:border-orange-500"
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            const newIds = [...table.traveler_ids, e.target.value];
+                            handleUpdateTable(table.id, { traveler_ids: newIds });
+                            e.target.value = '';
+                          }
+                        }}
+                      >
+                        <option value="">+ 加入團員</option>
+                        {travelers
+                          .filter(t => {
+                            // Only show travelers not already at this table
+                            const allTables = tables[`${activeSpotForTable.itinerary_id}_${activeSpotForTable.spot_id}`] || [];
+                            const isAlreadyAssigned = allTables.some(tab => tab.traveler_ids.includes(t.id));
+                            return !isAlreadyAssigned;
+                          })
+                          .map(t => (
+                            <option key={t.id} value={t.id}>
+                              {t.full_name} ({t.dietary_needs})
+                            </option>
+                          ))}
+                      </select>
+                      <div className="mt-2 text-[10px] font-black text-slate-500 text-center uppercase tracking-widest">
+                        目前人數: {table.traveler_ids.length}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {(tables[`${activeSpotForTable.itinerary_id}_${activeSpotForTable.spot_id}`] || []).length === 0 && (
+                  <div className="flex-1 flex flex-col items-center justify-center text-slate-500">
+                    <UtensilsCrossed className="w-16 h-16 mb-4 opacity-20" />
+                    <p className="font-black text-xl">尚未建立桌位</p>
+                    <p className="font-bold">點擊右上角「新增桌位」開始排定</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-8 flex justify-end">
+              <button 
+                onClick={() => setShowTableModal(false)}
+                className="bg-slate-800 hover:bg-slate-700 text-white px-12 py-4 rounded-[2rem] font-black transition-all"
+              >
+                完成配置
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </main>
 
       {/* Add Hotel Modal */}
       {showAddHotelModal && (

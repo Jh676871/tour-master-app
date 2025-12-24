@@ -36,6 +36,17 @@ export default function TravelersPage() {
   const [travelers, setTravelers] = useState<Traveler[]>([]);
   const [roomMappings, setRoomMappings] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState('');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newTraveler, setNewTraveler] = useState({
+    full_name: '',
+    gender: '男',
+    dietary_needs: '無',
+    emergency_contact: '',
+    blood_type: '',
+    medical_notes: ''
+  });
+
+  const DIETARY_OPTIONS = ['全素', '蛋奶素', '不吃牛', '不吃豬', '海鮮過敏', '花生過敏', '無'];
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -211,6 +222,42 @@ export default function TravelersPage() {
     setRoomMappings(prev => ({ ...prev, [travelerId]: roomNumber }));
   };
 
+  const handleDietaryChange = async (travelerId: string, needs: string) => {
+    try {
+      const { error } = await supabase
+        .from('travelers')
+        .update({ dietary_needs: needs })
+        .eq('id', travelerId);
+      
+      if (error) throw error;
+      
+      setTravelers(prev => prev.map(t => 
+        t.id === travelerId ? { ...t, dietary_needs: needs } : t
+      ));
+    } catch (error: any) {
+      alert(`更新飲食需求失敗: ${error.message}`);
+    }
+  };
+
+  const toggleDietaryTag = (traveler: Traveler, tag: string) => {
+    let currentNeeds = traveler.dietary_needs || '無';
+    let newNeeds = '';
+
+    if (tag === '無') {
+      newNeeds = '無';
+    } else {
+      const tags = currentNeeds === '無' ? [] : currentNeeds.split(',').map(t => t.trim());
+      if (tags.includes(tag)) {
+        const filtered = tags.filter(t => t !== tag);
+        newNeeds = filtered.length > 0 ? filtered.join(', ') : '無';
+      } else {
+        const filtered = tags.filter(t => t !== '無');
+        newNeeds = [...filtered, tag].join(', ');
+      }
+    }
+    handleDietaryChange(traveler.id, newNeeds);
+  };
+
   const saveRoomNumbers = async () => {
     if (!selectedItineraryId) return;
     setLoading(true);
@@ -235,9 +282,84 @@ export default function TravelersPage() {
     }
   };
 
+  const handleAddTraveler = async () => {
+    if (!newTraveler.full_name || !selectedGroupId) return;
+    
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('travelers')
+        .insert([{
+          ...newTraveler,
+          group_id: selectedGroupId
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setTravelers(prev => [...prev, data]);
+      setNewTraveler({ 
+        full_name: '', 
+        gender: '男', 
+        dietary_needs: '無',
+        emergency_contact: '',
+        blood_type: '',
+        medical_notes: ''
+      });
+      setShowAddModal(false);
+      setMessage({ type: 'success', text: '旅客新增成功！' });
+      setTimeout(() => setMessage(null), 3000);
+    } catch (error: any) {
+      alert(`新增失敗: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteTraveler = async (id: string) => {
+    if (!confirm('確定要刪除這位旅客嗎？')) return;
+    
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('travelers')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setTravelers(prev => prev.filter(t => t.id !== id));
+      setMessage({ type: 'success', text: '旅客已刪除' });
+      setTimeout(() => setMessage(null), 3000);
+    } catch (error: any) {
+      alert(`刪除失敗: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filteredTravelers = travelers.filter(t => 
     t.full_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const downloadTemplate = () => {
+    const templateData = [
+      {
+        '姓名': '王小明',
+        '性別': '男',
+        '飲食需求': '無',
+        '緊急聯絡人': '林小姐/0912345678',
+        '血型': 'A+',
+        '醫療備註': '無過敏史'
+      }
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '旅客名單範本');
+    XLSX.writeFile(wb, 'tour_master_traveler_template.xlsx');
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -256,6 +378,9 @@ export default function TravelersPage() {
           full_name: row['姓名'] || row['name'] || '',
           gender: row['性別'] || '男',
           dietary_needs: row['飲食需求'] || '無',
+          emergency_contact: row['緊急聯絡人'] || '',
+          blood_type: row['血型'] || '',
+          medical_notes: row['醫療備註'] || '',
           group_id: selectedGroupId
         })).filter(t => t.full_name);
 
@@ -291,6 +416,20 @@ export default function TravelersPage() {
           <h1 className="text-xl font-black tracking-tight">旅客房號管理</h1>
         </div>
         <div className="flex items-center gap-4">
+          <button 
+            onClick={downloadTemplate}
+            className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl font-bold flex items-center gap-2 transition-all"
+          >
+            <Download className="w-4 h-4" />
+            下載範本
+          </button>
+          <button 
+            onClick={() => setShowAddModal(true)}
+            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-blue-900/40"
+          >
+            <UserPlus className="w-4 h-4" />
+            新增旅客
+          </button>
           <button 
             onClick={() => fileInputRef.current?.click()}
             disabled={importing}
@@ -446,13 +585,34 @@ export default function TravelersPage() {
                         />
                       </td>
                       <td className="px-8 py-6">
-                        <div className="flex gap-2">
-                          <span className="bg-slate-800 px-3 py-1 rounded-lg text-sm font-bold text-slate-400">{t.gender}</span>
-                          <span className="bg-slate-800 px-3 py-1 rounded-lg text-sm font-bold text-slate-400">{t.dietary_needs}</span>
+                        <div className="flex flex-wrap gap-1.5 max-w-md">
+                          {DIETARY_OPTIONS.map(option => {
+                            const isSelected = t.dietary_needs?.includes(option) || (option === '無' && (t.dietary_needs === '無' || !t.dietary_needs));
+                            return (
+                              <button
+                                key={option}
+                                onClick={() => toggleDietaryTag(t, option)}
+                                className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border ${
+                                  isSelected 
+                                    ? 'bg-blue-600 border-blue-400 text-white' 
+                                    : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-600'
+                                }`}
+                              >
+                                {option}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <div className="mt-2 flex items-center gap-2">
+                          <span className="bg-slate-800 px-2 py-0.5 rounded text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t.gender}</span>
+                          <span className="text-[10px] font-bold text-slate-600">目前設定: {t.dietary_needs || '無'}</span>
                         </div>
                       </td>
                       <td className="px-8 py-6 text-right">
-                        <button className="p-2 text-slate-600 hover:text-red-500 transition-colors">
+                        <button 
+                          onClick={() => handleDeleteTraveler(t.id)}
+                          className="p-2 text-slate-600 hover:text-red-500 transition-colors"
+                        >
                           <Trash2 className="w-5 h-5" />
                         </button>
                       </td>
@@ -464,6 +624,147 @@ export default function TravelersPage() {
           )}
         </div>
       </div>
+
+      {/* Add Traveler Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setShowAddModal(false)} />
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-md rounded-[2.5rem] shadow-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-8 border-b border-slate-800">
+              <h2 className="text-2xl font-black flex items-center gap-3">
+                <UserPlus className="w-6 h-6 text-blue-500" />
+                新增旅客
+              </h2>
+            </div>
+            
+            <div className="p-8 space-y-6 max-h-[60vh] overflow-y-auto">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-xs font-black text-slate-500 uppercase tracking-widest ml-1">旅客姓名</label>
+                  <input 
+                    type="text"
+                    value={newTraveler.full_name}
+                    onChange={(e) => setNewTraveler(prev => ({ ...prev, full_name: e.target.value }))}
+                    placeholder="姓名"
+                    className="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl px-6 py-4 focus:border-blue-500 focus:outline-none font-bold text-lg"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-xs font-black text-slate-500 uppercase tracking-widest ml-1">性別</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {['男', '女'].map(g => (
+                      <button
+                        key={g}
+                        onClick={() => setNewTraveler(prev => ({ ...prev, gender: g }))}
+                        className={`py-4 rounded-2xl font-black text-lg border-2 transition-all ${
+                          newTraveler.gender === g 
+                            ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-900/40' 
+                            : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-700'
+                        }`}
+                      >
+                        {g}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-xs font-black text-slate-500 uppercase tracking-widest ml-1">緊急聯絡人/電話</label>
+                  <input 
+                    type="text"
+                    value={newTraveler.emergency_contact}
+                    onChange={(e) => setNewTraveler(prev => ({ ...prev, emergency_contact: e.target.value }))}
+                    placeholder="姓名/電話"
+                    className="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl px-6 py-4 focus:border-blue-500 focus:outline-none font-bold"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-xs font-black text-slate-500 uppercase tracking-widest ml-1">血型</label>
+                  <select 
+                    value={newTraveler.blood_type}
+                    onChange={(e) => setNewTraveler(prev => ({ ...prev, blood_type: e.target.value }))}
+                    className="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl px-6 py-4 focus:border-blue-500 focus:outline-none font-bold appearance-none"
+                  >
+                    <option value="">未設定</option>
+                    {['A', 'B', 'AB', 'O'].map(type => (
+                      <React.Fragment key={type}>
+                        <option value={`${type}+`}>{type}+</option>
+                        <option value={`${type}-`}>{type}-</option>
+                      </React.Fragment>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest ml-1">醫療備註</label>
+                <textarea 
+                  value={newTraveler.medical_notes}
+                  onChange={(e) => setNewTraveler(prev => ({ ...prev, medical_notes: e.target.value }))}
+                  placeholder="過敏史、長期用藥等..."
+                  className="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl px-6 py-4 focus:border-blue-500 focus:outline-none font-bold min-h-[80px]"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest ml-1">飲食需求</label>
+                <div className="flex flex-wrap gap-2">
+                  {DIETARY_OPTIONS.map(option => {
+                    const isSelected = newTraveler.dietary_needs?.includes(option) || (option === '無' && (newTraveler.dietary_needs === '無' || !newTraveler.dietary_needs));
+                    return (
+                      <button
+                        key={option}
+                        onClick={() => {
+                          let currentNeeds = newTraveler.dietary_needs || '無';
+                          let newNeeds = '';
+                          if (option === '無') {
+                            newNeeds = '無';
+                          } else {
+                            const tags = currentNeeds === '無' ? [] : currentNeeds.split(',').map(t => t.trim());
+                            if (tags.includes(option)) {
+                              const filtered = tags.filter(t => t !== option);
+                              newNeeds = filtered.length > 0 ? filtered.join(', ') : '無';
+                            } else {
+                              const filtered = tags.filter(t => t !== '無');
+                              newNeeds = [...filtered, option].join(', ');
+                            }
+                          }
+                          setNewTraveler(prev => ({ ...prev, dietary_needs: newNeeds }));
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all border ${
+                          isSelected 
+                            ? 'bg-blue-600 border-blue-400 text-white' 
+                            : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-600'
+                        }`}
+                      >
+                        {option}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-8 bg-slate-950/50 flex gap-4">
+              <button 
+                onClick={() => setShowAddModal(false)}
+                className="flex-1 bg-slate-800 hover:bg-slate-700 text-white py-4 rounded-2xl font-black transition-all"
+              >
+                取消
+              </button>
+              <button 
+                onClick={handleAddTraveler}
+                disabled={!newTraveler.full_name || loading}
+                className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-600 text-white py-4 rounded-2xl font-black transition-all shadow-lg shadow-blue-900/40"
+              >
+                {loading ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : '確認新增'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Success/Error Message Toast */}
       {message && (

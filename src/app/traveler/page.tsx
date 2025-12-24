@@ -13,6 +13,7 @@ import {
   Copy, 
   CheckCircle2, 
   AlertCircle,
+  AlertTriangle,
   Key,
   Navigation,
   Calendar,
@@ -20,7 +21,8 @@ import {
   Dumbbell,
   StickyNote,
   Map as MapIcon,
-  Users
+  Users,
+  UtensilsCrossed
 } from 'lucide-react';
 import { Traveler, Group, Itinerary, Hotel } from '@/types/database';
 
@@ -34,14 +36,60 @@ export default function TravelerLIFFPage() {
   const [activeDayIndex, setActiveDayIndex] = useState(0);
   const [roomMappings, setRoomMappings] = useState<Record<string, string>>({});
   const [currentRoom, setCurrentRoom] = useState<string>('');
+  const [myTables, setMyTables] = useState<Record<string, string>>({}); // { itinerarySpotId: tableNumber }
   const [binding, setBinding] = useState(false);
   const [copied, setCopied] = useState(false);
   
   const [formData, setFormData] = useState({
     name: '',
-    group_code: ''
+    group_code: '',
+    emergency_contact: '',
+    blood_type: '',
+    medical_notes: ''
   });
   const [error, setError] = useState<string | null>(null);
+  const [sosLoading, setSosLoading] = useState(false);
+
+  const triggerSOS = async () => {
+    if (!traveler) return;
+    if (!confirm('確定要送出緊急求助訊息嗎？這將會立即通知領隊您的位置。')) return;
+
+    setSosLoading(true);
+    try {
+      // 1. Get location
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        });
+      });
+
+      const { latitude, longitude } = position.coords;
+
+      // 2. Insert alert
+      const { error: alertError } = await supabase
+        .from('emergency_alerts')
+        .insert([{
+          traveler_id: traveler.id,
+          latitude,
+          longitude,
+          status: 'pending'
+        }]);
+
+      if (alertError) throw alertError;
+
+      alert('緊急求助訊息已送出！領隊已收到您的位置，請保持冷靜並留在原地。');
+    } catch (err: any) {
+      console.error('SOS Error:', err);
+      let msg = '無法取得您的位置。請確認已開啟定位權限。';
+      if (err.code === 1) msg = '您拒絕了定位請求，請在設定中開啟定位以發送 SOS。';
+      else if (err.code === 3) msg = '定位超時，請稍後再試。';
+      alert(`SOS 發送失敗: ${msg}`);
+    } finally {
+      setSosLoading(false);
+    }
+  };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -148,6 +196,22 @@ export default function TravelerLIFFPage() {
             mapping[item.itinerary_id].push(item);
           });
           setItinSpots(mapping);
+
+          // 4. Fetch Tables for this traveler
+          const { data: tableData } = await supabase
+            .from('itinerary_spot_tables')
+            .select('*')
+            .in('itinerary_id', itinIds)
+            .contains('traveler_ids', [travelerId]);
+          
+          if (tableData) {
+            const tableMapping: Record<string, string> = {};
+            tableData.forEach(t => {
+              const key = `${t.itinerary_id}_${t.spot_id}`;
+              tableMapping[key] = t.table_number;
+            });
+            setMyTables(tableMapping);
+          }
         }
       }
     }
@@ -185,7 +249,12 @@ export default function TravelerLIFFPage() {
 
       const { error: updateError } = await supabase
         .from('travelers')
-        .update({ line_uid: userId })
+        .update({ 
+          line_uid: userId,
+          emergency_contact: formData.emergency_contact,
+          blood_type: formData.blood_type,
+          medical_notes: formData.medical_notes
+        })
         .eq('id', travelerData.id);
 
       if (updateError) throw updateError;
@@ -272,6 +341,52 @@ export default function TravelerLIFFPage() {
                 className="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl px-6 py-4 focus:border-purple-500 focus:outline-none font-bold text-lg uppercase"
               />
             </div>
+
+            <div className="pt-4 border-t border-slate-800 space-y-6">
+              <p className="text-[10px] font-black text-red-500 uppercase tracking-widest text-center">緊急安全資訊 (必填)</p>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">血型</label>
+                  <select
+                    value={formData.blood_type}
+                    onChange={(e) => setFormData({ ...formData, blood_type: e.target.value })}
+                    className="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl px-6 py-4 focus:border-blue-500 focus:outline-none font-bold text-lg"
+                    required
+                  >
+                    <option value="">選擇</option>
+                    <option value="A">A 型</option>
+                    <option value="B">B 型</option>
+                    <option value="O">O 型</option>
+                    <option value="AB">AB 型</option>
+                    <option value="Unknown">不清楚</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">緊急聯絡電話</label>
+                  <input
+                    type="tel"
+                    value={formData.emergency_contact}
+                    onChange={(e) => setFormData({ ...formData, emergency_contact: e.target.value })}
+                    placeholder="例: 0912..."
+                    className="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl px-6 py-4 focus:border-blue-500 focus:outline-none font-bold text-lg"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">重大病史或藥物過敏 (無則填無)</label>
+                <textarea
+                  value={formData.medical_notes}
+                  onChange={(e) => setFormData({ ...formData, medical_notes: e.target.value })}
+                  placeholder="提供領隊緊急時參考..."
+                  rows={2}
+                  className="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl px-6 py-4 focus:border-blue-500 focus:outline-none font-bold text-lg resize-none"
+                  required
+                />
+              </div>
+            </div>
             {error && (
               <div className="bg-red-900/20 border border-red-500/50 p-4 rounded-2xl flex items-center gap-3 text-red-400 text-sm font-bold">
                 <AlertCircle className="w-5 h-5 flex-shrink-0" />
@@ -331,6 +446,25 @@ export default function TravelerLIFFPage() {
       </div>
 
       <div className="p-6 space-y-6">
+        {/* SOS Button Section */}
+        <div className="grid grid-cols-1 gap-4">
+          <button
+            onClick={triggerSOS}
+            disabled={sosLoading}
+            className="bg-red-600 hover:bg-red-500 text-white p-6 rounded-[2rem] font-black transition-all shadow-2xl shadow-red-900/40 active:scale-95 border-2 border-red-400 flex items-center justify-center gap-4 group"
+          >
+            {sosLoading ? (
+              <Loader2 className="w-8 h-8 animate-spin" />
+            ) : (
+              <AlertTriangle className="w-8 h-8 animate-bounce" />
+            )}
+            <div className="text-left">
+              <span className="block uppercase tracking-[0.2em] text-[10px] opacity-80">Emergency Help</span>
+              <span className="text-2xl uppercase tracking-widest">SOS 緊急求助</span>
+            </div>
+          </button>
+        </div>
+
         {/* HUGE HOTEL NAME & ROOM NUMBER */}
         <div className="bg-slate-900 rounded-[3rem] shadow-2xl shadow-blue-900/40 relative overflow-hidden min-h-[300px] flex flex-col justify-end">
           {currentItinerary?.hotel?.image_url ? (
@@ -417,6 +551,20 @@ export default function TravelerLIFFPage() {
                       <p className="text-xs font-bold text-slate-500 mb-4 flex items-center gap-1">
                         <MapPin className="w-3 h-3 text-blue-500" /> {item.spot?.address}
                       </p>
+
+                      {myTables[`${currentItinerary.id}_${item.spot_id}`] && (
+                        <div className="bg-orange-600/10 border border-orange-500/30 rounded-2xl p-4 mb-4 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-orange-600 text-white w-10 h-10 rounded-xl flex items-center justify-center">
+                              <UtensilsCrossed className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest leading-none mb-1">您的餐廳桌位</p>
+                              <h5 className="text-xl font-black text-white">{myTables[`${currentItinerary.id}_${item.spot_id}`]} <span className="text-sm font-bold">號桌</span></h5>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       
                       {item.spot?.google_map_url && (
                         <a 

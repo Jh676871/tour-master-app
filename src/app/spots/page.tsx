@@ -31,7 +31,8 @@ export default function SpotsPage() {
     description: '',
     google_map_url: '',
     category: '熱門景點',
-    image_url: ''
+    image_url: '',
+    nearby_medical: ''
   });
 
   useEffect(() => {
@@ -74,7 +75,8 @@ export default function SpotsPage() {
         description: '',
         google_map_url: '',
         category: '熱門景點',
-        image_url: ''
+        image_url: '',
+        nearby_medical: ''
       });
     } catch (error: any) {
       alert(`新增失敗: ${error.message}`);
@@ -299,6 +301,17 @@ export default function SpotsPage() {
                   value={newSpot.image_url}
                   onChange={(e) => setNewSpot({...newSpot, image_url: e.target.value})}
                   className="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl px-6 py-4 font-bold focus:border-blue-500 outline-none transition-all"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-4 text-red-400">附近醫療機構 (選填)</label>
+                <textarea 
+                  rows={2}
+                  placeholder="例如：最近的 24H 急診醫院名稱與電話..."
+                  value={newSpot.nearby_medical}
+                  onChange={(e) => setNewSpot({...newSpot, nearby_medical: e.target.value})}
+                  className="w-full bg-slate-950 border-2 border-slate-800 rounded-3xl px-6 py-4 font-bold focus:border-blue-500 outline-none transition-all resize-none"
                 />
               </div>
 

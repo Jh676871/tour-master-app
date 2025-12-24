@@ -41,7 +41,8 @@ export default function HotelSettingsPage() {
     google_map_url: '',
     breakfast_info: '',
     gym_pool_info: '',
-    guide_notes: ''
+    guide_notes: '',
+    nearby_medical: ''
   });
 
   useEffect(() => {
@@ -142,9 +143,10 @@ export default function HotelSettingsPage() {
         wifi_info: '',
         google_map_url: '',
         breakfast_info: '',
-        gym_pool_info: '',
-        guide_notes: ''
-      });
+         gym_pool_info: '',
+         guide_notes: '',
+         nearby_medical: ''
+       });
       setShowAddHotel(false);
     } catch (error: any) {
       alert(`新增飯店失敗: ${error.message}`);

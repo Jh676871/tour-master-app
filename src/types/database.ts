@@ -9,6 +9,7 @@ export interface Hotel {
   gym_pool_info?: string;
   guide_notes?: string;
   image_url?: string;
+  nearby_medical?: string;
   created_at: string;
 }
 
@@ -40,6 +41,9 @@ export interface Traveler {
   dietary_needs: string;
   group_id: string | null;
   line_uid: string | null;
+  emergency_contact?: string;
+  blood_type?: string;
+  medical_notes?: string;
   created_at: string;
 }
 
@@ -59,5 +63,27 @@ export interface Spot {
   image_url?: string;
   google_map_url?: string;
   category?: string;
+  nearby_medical?: string;
+  created_at: string;
+}
+
+export interface EmergencyAlert {
+  id: string;
+  traveler_id: string;
+  latitude: number;
+  longitude: number;
+  status: 'pending' | 'resolved' | 'dismissed';
+  created_at: string;
+  traveler?: Traveler;
+}
+
+export interface ItinerarySpotTable {
+  id: string;
+  itinerary_id: string;
+  spot_id: string;
+  table_number: string;
+  capacity: number;
+  traveler_ids: string[];
+  notes?: string;
   created_at: string;
 }
