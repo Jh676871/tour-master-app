@@ -10,7 +10,8 @@ import {
   ArrowLeft, 
   Loader2, 
   CheckCircle2,
-  Hotel
+  Hotel,
+  Users
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -30,7 +31,8 @@ export default function HotelSettingsPage() {
   const [formData, setFormData] = useState({
     hotel_name: '',
     hotel_address: '',
-    wifi_info: ''
+    wifi_info: '',
+    group_code: ''
   });
 
   useEffect(() => {
@@ -40,14 +42,13 @@ export default function HotelSettingsPage() {
   const fetchGroupData = async () => {
     try {
       setLoading(true);
-      // 獲取第一個團體資料 (目前系統預設為單一團體操作模式)
       const { data, error } = await supabase
         .from('groups')
         .select('*')
         .limit(1)
         .single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+      if (error && error.code !== 'PGRST116') {
         throw error;
       }
 
@@ -56,7 +57,8 @@ export default function HotelSettingsPage() {
         setFormData({
           hotel_name: data.hotel_name || '',
           hotel_address: data.hotel_address || '',
-          wifi_info: data.wifi_info || ''
+          wifi_info: data.wifi_info || '',
+          group_code: data.group_code || ''
         });
       }
     } catch (error) {
@@ -73,26 +75,26 @@ export default function HotelSettingsPage() {
 
     try {
       if (group) {
-        // 更新現有團體
         const { error } = await supabase
           .from('groups')
           .update({
             hotel_name: formData.hotel_name,
             hotel_address: formData.hotel_address,
-            wifi_info: formData.wifi_info
+            wifi_info: formData.wifi_info,
+            group_code: formData.group_code
           })
           .eq('id', group.id);
 
         if (error) throw error;
       } else {
-        // 如果沒有團體，先建立一個預設團體 (兼容模式)
         const { data, error } = await supabase
           .from('groups')
           .insert([{
             name: '我的團體',
             hotel_name: formData.hotel_name,
             hotel_address: formData.hotel_address,
-            wifi_info: formData.wifi_info
+            wifi_info: formData.wifi_info,
+            group_code: formData.group_code
           }])
           .select()
           .single();
@@ -189,6 +191,22 @@ export default function HotelSettingsPage() {
                 placeholder="例如：Guest_WiFi / 12345678"
                 className="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl px-6 py-4 focus:border-orange-500 focus:outline-none transition-all font-bold text-lg"
               />
+            </div>
+
+            {/* Group Code */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm font-black text-slate-400 uppercase tracking-widest ml-1">
+                <Users className="w-4 h-4 text-purple-400" />
+                團體綁定代碼 (旅客使用)
+              </label>
+              <input
+                type="text"
+                value={formData.group_code}
+                onChange={(e) => setFormData({ ...formData, group_code: e.target.value })}
+                placeholder="例如：TM2025"
+                className="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl px-6 py-4 focus:border-purple-500 focus:outline-none transition-all font-bold text-lg"
+              />
+              <p className="text-xs text-slate-500 font-bold ml-1 italic">旅客在 LINE 綁定時需要輸入此代碼以確認團體。</p>
             </div>
           </div>
 

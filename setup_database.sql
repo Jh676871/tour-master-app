@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS public.groups (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     name TEXT NOT NULL,
+    group_code TEXT UNIQUE, -- 團體代碼，供旅客綁定使用
     start_date DATE,
     end_date DATE,
     location TEXT,
@@ -54,6 +55,14 @@ CREATE TABLE IF NOT EXISTS public.groups (
     hotel_address TEXT,
     wifi_info TEXT
 );
+
+-- 7. 確保旅客表有關聯團體
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='travelers' AND column_name='group_id') THEN
+        ALTER TABLE travelers ADD COLUMN group_id UUID REFERENCES public.groups(id);
+    END IF;
+END $$;
 
 -- 開啟 Realtime (針對 groups)
 ALTER PUBLICATION supabase_realtime ADD TABLE groups;
