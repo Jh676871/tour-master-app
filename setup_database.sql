@@ -42,5 +42,22 @@ ALTER PUBLICATION supabase_realtime ADD TABLE tour_expenses;
 ALTER TABLE public.check_ins ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow public access" ON public.check_ins FOR ALL USING (true) WITH CHECK (true);
 
-ALTER TABLE public.tour_expenses ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow public access" ON public.tour_expenses FOR ALL USING (true) WITH CHECK (true);
+-- 6. 建立或更新團體表
+CREATE TABLE IF NOT EXISTS public.groups (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    name TEXT NOT NULL,
+    start_date DATE,
+    end_date DATE,
+    location TEXT,
+    hotel_name TEXT,
+    hotel_address TEXT,
+    wifi_info TEXT
+);
+
+-- 開啟 Realtime (針對 groups)
+ALTER PUBLICATION supabase_realtime ADD TABLE groups;
+
+-- 設置 RLS
+ALTER TABLE public.groups ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public access" ON public.groups FOR ALL USING (true) WITH CHECK (true);

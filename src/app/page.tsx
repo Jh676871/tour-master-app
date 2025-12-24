@@ -112,6 +112,15 @@ export default function Home() {
                 </div>
                 <span className="uppercase tracking-widest text-sm text-center">完團報告</span>
               </Link>
+              <Link 
+                href="/hotel"
+                className="flex flex-col items-center justify-center gap-3 bg-slate-800 hover:bg-slate-700 text-white p-8 rounded-[2.5rem] font-black transition-all shadow-xl border-2 border-slate-700 active:scale-95 group h-44 w-full md:w-44"
+              >
+                <div className="bg-white/10 p-3 rounded-2xl group-hover:scale-110 transition-transform text-orange-400">
+                  <Navigation className="w-8 h-8" />
+                </div>
+                <span className="uppercase tracking-widest text-sm text-center">飯店設定</span>
+              </Link>
             </div>
           </div>
         </div>
