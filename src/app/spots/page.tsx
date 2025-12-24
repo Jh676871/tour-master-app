@@ -127,10 +127,10 @@ export default function SpotsPage() {
           
           <button 
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-black transition-all shadow-lg shadow-blue-900/40"
+            title="新增景點"
+            className="flex items-center justify-center bg-blue-600 hover:bg-blue-500 text-white w-12 h-12 rounded-xl font-black transition-all shadow-lg shadow-blue-900/40"
           >
-            <Plus className="w-5 h-5" />
-            <span className="uppercase tracking-widest text-sm">新增景點</span>
+            <Plus className="w-6 h-6" />
           </button>
         </div>
       </header>

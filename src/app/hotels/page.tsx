@@ -239,10 +239,10 @@ export default function HotelsPage() {
           </div>
           <button 
             onClick={() => handleOpenModal()}
-            className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-black transition-all flex items-center gap-2 text-sm min-h-[48px]"
+            title="新增飯店"
+            className="bg-blue-600 hover:bg-blue-500 text-white w-12 h-12 rounded-xl font-black transition-all flex items-center justify-center shadow-lg shadow-blue-900/40"
           >
-            <Plus className="w-5 h-5" />
-            新增飯店
+            <Plus className="w-6 h-6" />
           </button>
         </div>
       </header>

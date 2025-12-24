@@ -415,28 +415,28 @@ export default function TravelersPage() {
           </Link>
           <h1 className="text-xl font-black tracking-tight">旅客房號管理</h1>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <button 
             onClick={downloadTemplate}
-            className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl font-bold flex items-center gap-2 transition-all"
+            title="下載範本"
+            className="bg-slate-800 hover:bg-slate-700 text-slate-300 w-12 h-12 rounded-xl font-bold flex items-center justify-center transition-all"
           >
-            <Download className="w-4 h-4" />
-            下載範本
+            <Download className="w-6 h-6" />
           </button>
           <button 
             onClick={() => setShowAddModal(true)}
-            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-blue-900/40"
+            title="新增旅客"
+            className="bg-blue-600 hover:bg-blue-500 text-white w-12 h-12 rounded-xl font-bold flex items-center justify-center transition-all shadow-lg shadow-blue-900/40"
           >
-            <UserPlus className="w-4 h-4" />
-            新增旅客
+            <UserPlus className="w-6 h-6" />
           </button>
           <button 
             onClick={() => fileInputRef.current?.click()}
             disabled={importing}
-            className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 transition-all"
+            title="匯入名單"
+            className="bg-slate-800 hover:bg-slate-700 text-white w-12 h-12 rounded-xl font-bold flex items-center justify-center transition-all"
           >
-            {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileUp className="w-4 h-4" />}
-            匯入名單
+            {importing ? <Loader2 className="w-6 h-6 animate-spin" /> : <FileUp className="w-6 h-6" />}
           </button>
           <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".xlsx,.xls" />
         </div>

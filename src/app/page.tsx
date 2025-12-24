@@ -101,13 +101,13 @@ export default function Home() {
             </div>
           </div>
           
-          <div className="hidden md:flex items-center gap-3">
+          <div className="flex items-center gap-3">
             <button 
               onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-4 rounded-2xl font-black transition-all shadow-xl shadow-blue-900/40 active:scale-95 border border-blue-400"
+              title="新增團體"
+              className="flex items-center justify-center bg-blue-600 hover:bg-blue-500 text-white w-12 h-12 rounded-xl font-black transition-all shadow-xl shadow-blue-900/40 active:scale-95 border border-blue-400"
             >
               <Plus className="w-6 h-6" />
-              <span className="uppercase tracking-widest text-sm">新增團體</span>
             </button>
           </div>
         </div>
