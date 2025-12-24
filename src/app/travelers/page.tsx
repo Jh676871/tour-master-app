@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { UserPlus, ArrowLeft, Loader2, CheckCircle2, AlertCircle, Trash2, UserCog, FileUp, Download, Users, RotateCw, Eraser, MessageSquare, Copy, Link as LinkIcon, Send } from 'lucide-react';
+import { UserPlus, ArrowLeft, Loader2, CheckCircle2, AlertCircle, Trash2, UserCog, FileUp, Download, Users, RotateCw, Eraser, MessageSquare, Copy, Link as LinkIcon, Send, Hotel, Wifi, Key } from 'lucide-react';
 import Link from 'next/link';
 import * as XLSX from 'xlsx';
 
@@ -235,6 +235,38 @@ export default function TravelersPage() {
   };
 
   const [sendingLine, setSendingLine] = useState<string | null>(null);
+  const [sendingRoom, setSendingRoom] = useState<string | null>(null);
+
+  const handleSendRoomNumber = async (traveler: Traveler) => {
+    if (!traveler.line_uid) {
+      alert('該旅客尚未綁定 LINE！');
+      return;
+    }
+
+    if (!traveler.room_number) {
+      alert('該旅客尚未設定房號！');
+      return;
+    }
+
+    setSendingRoom(traveler.id);
+    try {
+      const response = await fetch('/api/line/push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: traveler.line_uid,
+          message: `您好，您今晚的房號是 [${traveler.room_number}]，行李將於稍後送達。`
+        })
+      });
+
+      if (!response.ok) throw new Error('發送失敗');
+      setMessage({ type: 'success', text: `已成功發送房號給 ${traveler.full_name}！` });
+    } catch (error: any) {
+      setMessage({ type: 'error', text: `發送失敗：${error.message}` });
+    } finally {
+      setSendingRoom(null);
+    }
+  };
 
   const handleSendTestMessage = async (traveler: Traveler) => {
     if (!traveler.line_uid) {
@@ -503,7 +535,27 @@ export default function TravelersPage() {
                         </button>
 
                         <button
-                          onClick={() => handleSendTestMessage(traveler)}
+                           onClick={() => handleSendRoomNumber(traveler)}
+                           disabled={!traveler.line_uid || sendingRoom === traveler.id}
+                           className={`p-3 rounded-2xl transition-all border active:scale-90 group relative ${
+                             traveler.line_uid 
+                               ? 'bg-blue-600/20 border-blue-500/30 text-blue-400 hover:bg-blue-600/30' 
+                               : 'bg-slate-800/50 border-slate-700 text-slate-500 cursor-not-allowed'
+                           }`}
+                           title={traveler.line_uid ? "發送房號" : "尚未綁定 LINE"}
+                         >
+                           {sendingRoom === traveler.id ? (
+                             <Loader2 className="w-5 h-5 animate-spin" />
+                           ) : (
+                             <Hotel className="w-5 h-5" />
+                           )}
+                           <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-slate-700">
+                             {traveler.line_uid ? "發送房號" : "尚未綁定 LINE"}
+                           </span>
+                         </button>
+
+                         <button
+                           onClick={() => handleSendTestMessage(traveler)}
                           disabled={!traveler.line_uid || sendingLine === traveler.id}
                           className={`p-3 rounded-2xl transition-all border active:scale-90 group relative ${
                             traveler.line_uid 
