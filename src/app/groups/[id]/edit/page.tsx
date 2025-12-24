@@ -669,10 +669,10 @@ export default function GroupEditPage() {
           <button 
             onClick={handleSaveAll}
             disabled={saving}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-black transition-all shadow-lg shadow-blue-900/40"
+            title="儲存變更"
+            className="flex items-center justify-center bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white w-12 h-12 rounded-xl font-black transition-all shadow-lg shadow-blue-900/40"
           >
-            {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-            <span className="uppercase tracking-widest text-sm">儲存變更</span>
+            {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-6 h-6" />}
           </button>
         </div>
       </header>
