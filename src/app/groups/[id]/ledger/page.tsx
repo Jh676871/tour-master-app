@@ -60,7 +60,7 @@ export default function LedgerPage() {
 
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
-
+  
   // Stats
   const stats = React.useMemo(() => {
     let totalIncome = 0;
@@ -243,9 +243,7 @@ export default function LedgerPage() {
       receipt_file: null,
       receipt_url: ledger.receipt_url || ''
     });
-    // Reset inputs
-    if (cameraInputRef.current) cameraInputRef.current.value = '';
-    if (galleryInputRef.current) galleryInputRef.current.value = '';
+    // Reset inputs handled in onChange
     setShowAddModal(true);
   };
 
@@ -283,9 +281,8 @@ export default function LedgerPage() {
       receipt_file: null,
       receipt_url: ''
     });
-    // Reset file inputs if they exist
-    if (cameraInputRef.current) cameraInputRef.current.value = '';
-    if (galleryInputRef.current) galleryInputRef.current.value = '';
+    // No need to reset hidden refs anymore as we use direct inputs
+    // but we can clear the event target value in onChange
   };
 
   return (
@@ -518,23 +515,7 @@ export default function LedgerPage() {
                 <div className="space-y-2">
                   <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">收據照片 (拍照或從相簿)</label>
                   
-                  {/* Hidden Inputs */}
-                  <input 
-                    ref={cameraInputRef}
-                    type="file" 
-                    accept="image/*" 
-                    capture="environment"
-                    className="hidden"
-                    onChange={handleFileChange}
-                  />
-                  <input 
-                    ref={galleryInputRef}
-                    type="file" 
-                    accept="image/*" 
-                    // No capture attribute for gallery
-                    className="hidden"
-                    onChange={handleFileChange}
-                  />
+                  {/* Hidden Inputs removed in favor of direct inputs below */}
 
                   {processingOCR ? (
                     <div className="border-2 border-dashed border-blue-500 bg-blue-500/10 rounded-2xl p-6 text-center">
@@ -562,27 +543,32 @@ export default function LedgerPage() {
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-4">
-                      <button
-                        type="button"
-                        onClick={() => cameraInputRef.current?.click()}
-                        className="flex flex-col items-center gap-3 bg-slate-800 hover:bg-slate-700 p-6 rounded-2xl border-2 border-slate-700 hover:border-blue-500 transition-all group"
-                      >
+                      <div className="relative flex flex-col items-center gap-3 bg-slate-800 hover:bg-slate-700 p-6 rounded-2xl border-2 border-slate-700 hover:border-blue-500 transition-all group overflow-hidden">
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          capture="environment"
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                          onChange={handleFileChange}
+                        />
                         <div className="w-12 h-12 bg-slate-900 rounded-full flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
                           <Camera className="w-6 h-6" />
                         </div>
                         <span className="font-black text-white">立即拍照</span>
-                      </button>
+                      </div>
 
-                      <button
-                        type="button"
-                        onClick={() => galleryInputRef.current?.click()}
-                        className="flex flex-col items-center gap-3 bg-slate-800 hover:bg-slate-700 p-6 rounded-2xl border-2 border-slate-700 hover:border-purple-500 transition-all group"
-                      >
+                      <div className="relative flex flex-col items-center gap-3 bg-slate-800 hover:bg-slate-700 p-6 rounded-2xl border-2 border-slate-700 hover:border-purple-500 transition-all group overflow-hidden">
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                          onChange={handleFileChange}
+                        />
                         <div className="w-12 h-12 bg-slate-900 rounded-full flex items-center justify-center text-purple-500 group-hover:scale-110 transition-transform">
                           <Wallet className="w-6 h-6" />
                         </div>
                         <span className="font-black text-white">從相簿選擇</span>
-                      </button>
+                      </div>
                     </div>
                   )}
                 </div>
