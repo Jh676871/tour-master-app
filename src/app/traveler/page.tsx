@@ -75,14 +75,11 @@ export default function TravelerLIFFPage() {
   }, []);
 
   const checkBinding = async (lineUid: string, signal?: AbortSignal) => {
-    const query = supabase
+    const { data: travelerData } = await supabase
       .from('travelers')
       .select('*')
-      .eq('line_uid', lineUid);
-    
-    if (signal) query.abortSignal(signal);
-    
-    const { data: travelerData } = await query.single();
+      .eq('line_uid', lineUid)
+      .single();
 
     if (travelerData) {
       setTraveler(travelerData);
@@ -96,15 +93,11 @@ export default function TravelerLIFFPage() {
     const today = new Date().toISOString().split('T')[0];
     
     // 1. Fetch ALL itineraries for the group
-    const itinQuery = supabase
+    const { data: allItineraries } = await supabase
       .from('itineraries')
       .select('*, hotel:hotels(*)')
       .eq('group_id', groupId)
       .order('trip_date', { ascending: true });
-
-    if (signal) itinQuery.abortSignal(signal);
-    
-    const { data: allItineraries } = await itinQuery;
 
       if (allItineraries) {
         setItineraries(allItineraries as any);
@@ -121,15 +114,11 @@ export default function TravelerLIFFPage() {
 
       // 2. Fetch ALL room numbers for this traveler in this group
       const itinIds = allItineraries.map(it => it.id);
-      const roomQuery = supabase
+      const { data: roomsData } = await supabase
         .from('traveler_rooms')
         .select('itinerary_id, room_number')
         .eq('traveler_id', travelerId)
         .in('itinerary_id', itinIds);
-
-      if (signal) roomQuery.abortSignal(signal);
-      
-      const { data: roomsData } = await roomQuery;
       
       if (roomsData) {
         const mapping: Record<string, string> = {};
@@ -145,15 +134,11 @@ export default function TravelerLIFFPage() {
 
       // 3. Fetch Itinerary Spots
       if (itinIds.length > 0) {
-        const spotQuery = supabase
+        const { data: spotData } = await supabase
           .from('itinerary_spots')
           .select('*, spot:spots(*)')
           .in('itinerary_id', itinIds)
           .order('sort_order', { ascending: true });
-        
-        if (signal) spotQuery.abortSignal(signal);
-        
-        const { data: spotData } = await spotQuery;
         
         if (spotData) {
           const mapping: Record<string, any[]> = {};

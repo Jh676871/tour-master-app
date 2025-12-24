@@ -18,7 +18,8 @@ import {
   ExternalLink,
   Map as MapIcon,
   Utensils,
-  Camera
+  Camera,
+  Users
 } from 'lucide-react';
 import { Group, Hotel, Itinerary, Spot } from '@/types/database';
 

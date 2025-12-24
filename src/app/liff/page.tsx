@@ -64,28 +64,21 @@ function LiffContent() {
     setLoading(true);
     try {
       // 1. Find the traveler by name
-      const query = supabase
+      const { data: traveler, error: findError } = await supabase
         .from('travelers')
         .select('*')
-        .or(`full_name.eq."${travelerName}",name.eq."${travelerName}"`);
-      
-      if (signal) query.abortSignal(signal);
-      
-      const { data: traveler, error: findError } = await query.single();
+        .or(`full_name.eq."${travelerName}",name.eq."${travelerName}"`)
+        .single();
 
       if (findError || !traveler) {
         throw new Error('找不到對應的旅客資料，請洽領隊。');
       }
 
       // 2. Update the line_uid
-      const updateQuery = supabase
+      const { error: updateError } = await supabase
         .from('travelers')
         .update({ line_uid: userId })
         .eq('id', traveler.id);
-      
-      if (signal) updateQuery.abortSignal(signal);
-
-      const { error: updateError } = await updateQuery;
 
       if (updateError) {
         // Fallback: If column doesn't exist, we might need the user to add it

@@ -47,8 +47,7 @@ export default function TravelersPage() {
         setLoading(true);
         const { data, error } = await supabase
           .from('groups')
-          .select('*')
-          .abortSignal(controller.signal);
+          .select('*');
           
         if (data && data.length > 0) {
           setGroups(data);
@@ -78,8 +77,7 @@ export default function TravelersPage() {
             .from('itineraries')
             .select('*, hotel:hotels(*)')
             .eq('group_id', selectedGroupId)
-            .order('trip_date', { ascending: true })
-            .abortSignal(controller.signal);
+            .order('trip_date', { ascending: true });
           
           if (itinData) {
             setItineraries(itinData);
@@ -96,8 +94,7 @@ export default function TravelersPage() {
             .from('travelers')
             .select('*')
             .eq('group_id', selectedGroupId)
-            .order('full_name', { ascending: true })
-            .abortSignal(controller.signal);
+            .order('full_name', { ascending: true });
           
           if (travelerData) setTravelers(travelerData);
         } catch (error: any) {
@@ -124,8 +121,7 @@ export default function TravelersPage() {
           const { data } = await supabase
             .from('traveler_rooms')
             .select('traveler_id, room_number')
-            .eq('itinerary_id', selectedItineraryId)
-            .abortSignal(controller.signal);
+            .eq('itinerary_id', selectedItineraryId);
           
           if (data) {
             const mapping: Record<string, string> = {};
@@ -153,10 +149,7 @@ export default function TravelersPage() {
     // Keep this for manual refresh if needed, but the effect handles initial load
     try {
       setLoading(true);
-      const query = supabase.from('groups').select('*');
-      if (signal) query.abortSignal(signal);
-      
-      const { data } = await query;
+      const { data } = await supabase.from('groups').select('*');
       if (data && data.length > 0) {
         setGroups(data);
         setSelectedGroupId(data[0].id);
@@ -171,15 +164,12 @@ export default function TravelersPage() {
   };
 
   const fetchItineraries = async (groupId: string, signal?: AbortSignal) => {
-    const query = supabase
+    const { data } = await supabase
       .from('itineraries')
       .select('*, hotel:hotels(*)')
       .eq('group_id', groupId)
       .order('trip_date', { ascending: true });
     
-    if (signal) query.abortSignal(signal);
-    
-    const { data } = await query;
     if (data) {
       setItineraries(data);
       if (data.length > 0) {
@@ -192,28 +182,22 @@ export default function TravelersPage() {
 
   const fetchTravelers = async (groupId: string, signal?: AbortSignal) => {
     setFetching(true);
-    const query = supabase
+    const { data } = await supabase
       .from('travelers')
       .select('*')
       .eq('group_id', groupId)
       .order('full_name', { ascending: true });
     
-    if (signal) query.abortSignal(signal);
-    
-    const { data } = await query;
     if (data) setTravelers(data);
     setFetching(false);
   };
 
   const fetchRoomNumbers = async (itineraryId: string, signal?: AbortSignal) => {
-    const query = supabase
+    const { data } = await supabase
       .from('traveler_rooms')
       .select('*')
       .eq('itinerary_id', itineraryId);
     
-    if (signal) query.abortSignal(signal);
-    
-    const { data } = await query;
     const mapping: Record<string, string> = {};
     if (data) {
       data.forEach((r: TravelerRoom) => {

@@ -23,14 +23,10 @@ export default function Home() {
     try {
       setLoading(true);
       // Fetch groups and join with traveler counts
-      const query = supabase
+      const { data: groupsData, error: groupsError } = await supabase
         .from('groups')
         .select('*')
         .order('created_at', { ascending: false });
-
-      if (signal) query.abortSignal(signal);
-      
-      const { data: groupsData, error: groupsError } = await query;
 
       if (groupsError) {
         // If it's an abort error, we don't want to log it as a full error
@@ -53,8 +49,6 @@ export default function Home() {
             .from('travelers')
             .select('id', { count: 'exact', head: true })
             .eq('group_id', group.id);
-          
-          if (signal) travelerQuery.abortSignal(signal);
           
           const { count, error: countError } = await travelerQuery;
           

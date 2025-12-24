@@ -53,13 +53,9 @@ export default function CheckInPage() {
   const fetchData = async (signal?: AbortSignal) => {
     try {
       setLoading(true);
-      const travelerQuery = supabase
+      const { data: rawData, error: fetchError } = await supabase
         .from('travelers')
         .select('*');
-      
-      if (signal) travelerQuery.abortSignal(signal);
-
-      const { data: rawData, error: fetchError } = await travelerQuery;
 
       if (fetchError) throw fetchError;
 
@@ -80,13 +76,9 @@ export default function CheckInPage() {
 
       setTravelers(sortedTravelers);
 
-      const checkinQuery = supabase
+      const { data: checkinsData, error: checkinsError } = await supabase
         .from('check_ins')
         .select('traveler_id');
-      
-      if (signal) checkinQuery.abortSignal(signal);
-
-      const { data: checkinsData, error: checkinsError } = await checkinQuery;
 
       if (checkinsError) throw checkinsError;
       

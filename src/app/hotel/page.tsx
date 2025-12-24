@@ -51,8 +51,8 @@ export default function HotelSettingsPage() {
       try {
         setLoading(true);
         const [groupsRes, hotelsRes] = await Promise.all([
-          supabase.from('groups').select('*').abortSignal(controller.signal),
-          supabase.from('hotels').select('*').abortSignal(controller.signal)
+          supabase.from('groups').select('*'),
+          supabase.from('hotels').select('*')
         ]);
 
         if (groupsRes.data) {
@@ -85,8 +85,7 @@ export default function HotelSettingsPage() {
           .from('itineraries')
           .select('*, hotel:hotels(*)')
           .eq('group_id', selectedGroupId)
-          .order('trip_date', { ascending: true })
-          .abortSignal(controller.signal);
+          .order('trip_date', { ascending: true });
         
         if (data) setItineraries(data);
       } catch (error: any) {
@@ -104,10 +103,7 @@ export default function HotelSettingsPage() {
     // Keep for manual refresh
     try {
       setLoading(true);
-      const query = supabase.from('groups').select('*');
-      if (signal) query.abortSignal(signal);
-      
-      const { data } = await query;
+      const { data } = await supabase.from('groups').select('*');
       if (data) setGroups(data);
     } catch (error: any) {
       if (error.name !== 'AbortError') {
@@ -119,15 +115,11 @@ export default function HotelSettingsPage() {
   };
 
   const fetchItineraries = async (groupId: string, signal?: AbortSignal) => {
-    const query = supabase
+    const { data } = await supabase
       .from('itineraries')
       .select('*, hotel:hotels(*)')
       .eq('group_id', groupId)
       .order('trip_date', { ascending: true });
-    
-    if (signal) query.abortSignal(signal);
-    
-    const { data } = await query;
     if (data) setItineraries(data);
   };
 
@@ -143,7 +135,16 @@ export default function HotelSettingsPage() {
       
       if (error) throw error;
       setHotels([...hotels, data]);
-      setNewHotel({ name: '', address: '', phone: '', wifi_info: '' });
+      setNewHotel({ 
+        name: '', 
+        address: '', 
+        phone: '', 
+        wifi_info: '',
+        google_map_url: '',
+        breakfast_info: '',
+        gym_pool_info: '',
+        guide_notes: ''
+      });
       setShowAddHotel(false);
     } catch (error: any) {
       alert(`新增飯店失敗: ${error.message}`);

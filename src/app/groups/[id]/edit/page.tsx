@@ -26,7 +26,8 @@ import {
   Search,
   Wand2,
   Sparkles,
-  Copy
+  Copy,
+  Navigation
 } from 'lucide-react';
 import Link from 'next/link';
 import { Group, Hotel, Itinerary, Traveler, TravelerRoom, Spot } from '@/types/database';
@@ -219,7 +220,6 @@ export default function GroupEditPage() {
           .from('groups')
           .select('*')
           .eq('id', groupId)
-          .abortSignal(controller.signal)
           .single();
           
         if (!groupData) throw new Error('找不到團體資料');
@@ -229,16 +229,14 @@ export default function GroupEditPage() {
         const { data: hotelsData } = await supabase
           .from('hotels')
           .select('*')
-          .order('name')
-          .abortSignal(controller.signal);
+          .order('name');
         setHotels(hotelsData || []);
 
         // 2.5 Fetch Spots
         const { data: spotsData } = await supabase
           .from('spots')
           .select('*')
-          .order('name')
-          .abortSignal(controller.signal);
+          .order('name');
         setSpots(spotsData || []);
 
         // 3. Fetch Itineraries
@@ -246,8 +244,7 @@ export default function GroupEditPage() {
           .from('itineraries')
           .select('*, hotel:hotels(*)')
           .eq('group_id', groupId)
-          .order('trip_date', { ascending: true })
-          .abortSignal(controller.signal);
+          .order('trip_date', { ascending: true });
         
         let currentItineraries = itinerariesData || [];
 
@@ -274,8 +271,7 @@ export default function GroupEditPage() {
           const { data: insertedItins } = await supabase
             .from('itineraries')
             .insert(newItins)
-            .select()
-            .abortSignal(controller.signal);
+            .select();
           currentItineraries = insertedItins || [];
         }
         
@@ -288,8 +284,7 @@ export default function GroupEditPage() {
             .from('itinerary_spots')
             .select('*, spot:spots(*)')
             .in('itinerary_id', itinIds)
-            .order('sort_order', { ascending: true })
-            .abortSignal(controller.signal);
+            .order('sort_order', { ascending: true });
           
           if (itinSpotsData) {
             const mapping: Record<string, any[]> = {};
@@ -306,16 +301,14 @@ export default function GroupEditPage() {
           .from('travelers')
           .select('*')
           .eq('group_id', groupId)
-          .order('full_name')
-          .abortSignal(controller.signal);
+          .order('full_name');
         setTravelers(travelersData || []);
 
         // 5. Fetch Room Mappings
         const { data: roomsData } = await supabase
           .from('traveler_rooms')
           .select('*')
-          .in('itinerary_id', currentItineraries.map((it: any) => it.id).filter(Boolean))
-          .abortSignal(controller.signal);
+          .in('itinerary_id', currentItineraries.map((it: any) => it.id).filter(Boolean));
         
         if (roomsData) {
           const mapping: Record<string, Record<string, string>> = {};
@@ -347,10 +340,7 @@ export default function GroupEditPage() {
     if (!groupId) return;
     try {
       setLoading(true);
-      const query = supabase.from('groups').select('*').eq('id', groupId).single();
-      if (signal) query.abortSignal(signal);
-      
-      const { data: groupData } = await query;
+      const { data: groupData } = await supabase.from('groups').select('*').eq('id', groupId).single();
       if (groupData) setGroup(groupData);
     } catch (error: any) {
       if (error.name !== 'AbortError' && !error.message?.includes('AbortError')) {
