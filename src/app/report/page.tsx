@@ -101,22 +101,69 @@ export default function TourReportPage() {
     if (!reportRef.current) return;
     setIsExporting(true);
     try {
+      console.log('Starting PDF export with style stripping...');
       const canvas = await html2canvas(reportRef.current, {
-        scale: 2,
+        scale: 1.5,
         useCORS: true,
-        backgroundColor: '#0f172a' // match slate-900
+        logging: true,
+        backgroundColor: '#0f172a',
+        windowWidth: 1200,
+        onclone: (clonedDoc) => {
+          // 徹底移除所有 style 與 link 標籤，防止 html2canvas 解析到 lab() 顏色
+          const styles = clonedDoc.querySelectorAll('style, link[rel="stylesheet"]');
+          styles.forEach(s => s.remove());
+          
+          // 強制設定 clonedDoc 的 body 背景色，避免抓到全域樣式
+          clonedDoc.body.style.backgroundColor = '#0f172a';
+          clonedDoc.body.style.color = 'white';
+
+          // 注入最簡化的 HEX 基礎樣式
+          const style = clonedDoc.createElement('style');
+          style.innerHTML = `
+            * { 
+              color-scheme: dark !important;
+              border-color: #334155 !important;
+            }
+            .report-capture { 
+              background-color: #0f172a !important; 
+              color: white !important; 
+              font-family: sans-serif !important;
+              padding: 40px !important;
+            }
+            h2 { color: white !important; }
+            section { margin-bottom: 32px !important; }
+            .bg-slate-800, .bg-\\[\\#1e293b\\]\\/50 { background-color: #1e293b !important; }
+            .border-slate-700, .border-\\[\\#334155\\] { border-color: #334155 !important; }
+            .text-blue-400, .text-\\[\\#60a5fa\\] { color: #60a5fa !important; }
+            .text-green-400, .text-\\[\\#4ade80\\] { color: #4ade80 !important; }
+            .text-red-400, .text-\\[\\#f87171\\] { color: #f87171 !important; }
+            .text-yellow-400, .text-\\[\\#facc15\\] { color: #facc15 !important; }
+            .text-slate-400, .text-\\[\\#94a3b8\\] { color: #94a3b8 !important; }
+            .text-slate-500, .text-\\[\\#64748b\\] { color: #64748b !important; }
+            /* 隱藏不必要的 UI 元素 */
+            [data-html2canvas-ignore="true"] { display: none !important; }
+          `;
+          clonedDoc.head.appendChild(style);
+        }
       });
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgProps = pdf.getImageProperties(imgData);
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
       
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      console.log('Canvas generated successfully');
+      const imgData = canvas.toDataURL('image/jpeg', 0.8);
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`完團報告_${new Date().toLocaleDateString()}.pdf`);
-    } catch (error) {
-      console.error('PDF export failed:', error);
-      alert('導出失敗');
+      console.log('PDF saved successfully');
+    } catch (error: any) {
+      console.error('PDF export detail error:', error);
+      alert(`導出失敗: ${error.message || '未知錯誤'}`);
     } finally {
       setIsExporting(false);
     }
@@ -136,9 +183,20 @@ export default function TourReportPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-900 text-white pb-20">
+    <main className="min-h-screen bg-[#0f172a] text-white pb-20">
+      <style jsx global>{`
+        /* 強制覆蓋 Tailwind 4 可能產生的 modern colors (lab, oklch)，避免 html2canvas 崩潰 */
+        :root {
+          --color-slate-900: #0f172a !important;
+          --color-slate-800: #1e293b !important;
+          --color-slate-700: #334155 !important;
+          --color-blue-600: #2563eb !important;
+          --color-blue-500: #3b82f6 !important;
+          --color-blue-400: #60a5fa !important;
+        }
+      `}</style>
       {/* Header */}
-      <div className="bg-slate-950 border-b border-slate-800 sticky top-0 z-30 shadow-xl">
+      <div className="bg-[#020617] border-b border-[#1e293b] sticky top-0 z-30 shadow-xl">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="p-2 hover:bg-slate-800 rounded-lg transition-colors">
             <ArrowLeft className="w-6 h-6" />
@@ -155,34 +213,34 @@ export default function TourReportPage() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto p-6 space-y-8" ref={reportRef}>
+      <div className="max-w-4xl mx-auto p-6 space-y-8 bg-[#0f172a]" ref={reportRef}>
         {/* Section 1: Summary Stats */}
         <section className="space-y-4">
           <div className="flex items-center gap-2 mb-4">
-            <PieChart className="w-5 h-5 text-blue-400" />
-            <h2 className="text-lg font-bold">點名數據總覽</h2>
+            <PieChart className="w-5 h-5 text-[#60a5fa]" />
+            <h2 className="text-lg font-bold text-white">點名數據總覽</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700">
+            <div className="bg-[#1e293b]/50 p-6 rounded-2xl border border-[#334155]">
               <div className="flex justify-between items-start mb-2">
-                <Users className="w-5 h-5 text-slate-400" />
-                <span className="text-xs font-bold text-slate-500 uppercase">總人數</span>
+                <Users className="w-5 h-5 text-[#94a3b8]" />
+                <span className="text-xs font-bold text-[#64748b] uppercase">總人數</span>
               </div>
-              <div className="text-3xl font-black">{totalTravelers}</div>
+              <div className="text-3xl font-black text-white">{totalTravelers}</div>
             </div>
-            <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700">
+            <div className="bg-[#1e293b]/50 p-6 rounded-2xl border border-[#334155]">
               <div className="flex justify-between items-start mb-2">
-                <CheckCircle className="w-5 h-5 text-green-400" />
-                <span className="text-xs font-bold text-slate-500 uppercase">已報到</span>
+                <CheckCircle className="w-5 h-5 text-[#4ade80]" />
+                <span className="text-xs font-bold text-[#64748b] uppercase">已報到</span>
               </div>
-              <div className="text-3xl font-black text-green-400">{totalChecked}</div>
+              <div className="text-3xl font-black text-[#4ade80]">{totalChecked}</div>
             </div>
-            <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700">
+            <div className="bg-[#1e293b]/50 p-6 rounded-2xl border border-[#334155]">
               <div className="flex justify-between items-start mb-2">
-                <AlertCircle className="w-5 h-5 text-red-400" />
-                <span className="text-xs font-bold text-slate-500 uppercase">未報到</span>
+                <AlertCircle className="w-5 h-5 text-[#f87171]" />
+                <span className="text-xs font-bold text-[#64748b] uppercase">未報到</span>
               </div>
-              <div className="text-3xl font-black text-red-400">{missingCount}</div>
+              <div className="text-3xl font-black text-[#f87171]">{missingCount}</div>
             </div>
           </div>
         </section>
@@ -191,31 +249,35 @@ export default function TourReportPage() {
         <section className="space-y-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-yellow-400" />
-              <h2 className="text-lg font-bold">公積金支出記事本</h2>
+              <DollarSign className="w-5 h-5 text-[#facc15]" />
+              <h2 className="text-lg font-bold text-white">公積金支出記事本</h2>
             </div>
-            <div className="text-xl font-black text-yellow-400">
+            <div className="text-xl font-black text-[#facc15]">
               總計: ${totalExpense.toLocaleString()}
             </div>
           </div>
 
-          {/* Add Expense Form */}
-          <form onSubmit={handleAddExpense} className="flex gap-2 bg-slate-800/30 p-4 rounded-xl border border-slate-700 border-dashed">
+          {/* Add Expense Form - Ignore in PDF */}
+          <form 
+            onSubmit={handleAddExpense} 
+            data-html2canvas-ignore="true"
+            className="flex gap-2 bg-[#1e293b]/30 p-4 rounded-xl border border-[#334155] border-dashed"
+          >
             <input 
               type="text" 
               placeholder="支出描述 (如: 導遊小費, 飲水)"
-              className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 bg-[#020617] border border-[#334155] rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
               value={newExpense.description}
               onChange={e => setNewExpense({...newExpense, description: e.target.value})}
             />
             <input 
               type="number" 
               placeholder="金額"
-              className="w-24 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-24 bg-[#020617] border border-[#334155] rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
               value={newExpense.amount}
               onChange={e => setNewExpense({...newExpense, amount: e.target.value})}
             />
-            <button type="submit" className="bg-slate-700 hover:bg-slate-600 p-2 rounded-lg transition-colors">
+            <button type="submit" className="bg-[#334155] hover:bg-[#475569] p-2 rounded-lg transition-colors text-white">
               <Plus className="w-5 h-5" />
             </button>
           </form>
@@ -223,16 +285,17 @@ export default function TourReportPage() {
           {/* Expense List */}
           <div className="space-y-2">
             {expenses.map(expense => (
-              <div key={expense.id} className="flex items-center justify-between bg-slate-800/50 p-4 rounded-xl border border-slate-700 group">
+              <div key={expense.id} className="flex items-center justify-between bg-[#1e293b]/50 p-4 rounded-xl border border-[#334155] group">
                 <div>
-                  <div className="font-bold">{expense.description}</div>
-                  <div className="text-xs text-slate-500">{new Date(expense.created_at).toLocaleDateString()}</div>
+                  <div className="font-bold text-white">{expense.description}</div>
+                  <div className="text-xs text-[#64748b]">{new Date(expense.created_at).toLocaleDateString()}</div>
                 </div>
                 <div className="flex items-center gap-4">
-                  <div className="font-black text-yellow-400">${Number(expense.amount).toLocaleString()}</div>
+                  <div className="font-black text-[#facc15]">${Number(expense.amount).toLocaleString()}</div>
                   <button 
                     onClick={() => handleDeleteExpense(expense.id)}
-                    className="p-1 text-slate-600 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                    data-html2canvas-ignore="true"
+                    className="p-1 text-[#475569] hover:text-[#f87171] transition-colors opacity-0 group-hover:opacity-100"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -240,7 +303,7 @@ export default function TourReportPage() {
               </div>
             ))}
             {expenses.length === 0 && (
-              <div className="text-center py-10 text-slate-500 italic text-sm">
+              <div className="text-center py-10 text-[#64748b] italic text-sm">
                 目前尚無支出記錄
               </div>
             )}
@@ -250,17 +313,17 @@ export default function TourReportPage() {
         {/* Section 3: Summary Comments (Manual Entry for PDF) */}
         <section className="space-y-4">
           <div className="flex items-center gap-2 mb-4">
-            <FileText className="w-5 h-5 text-purple-400" />
-            <h2 className="text-lg font-bold">團後心得與異常說明</h2>
+            <FileText className="w-5 h-5 text-[#c084fc]" />
+            <h2 className="text-lg font-bold text-white">團後心得與異常說明</h2>
           </div>
           <textarea 
-            className="w-full h-40 bg-slate-800/50 border border-slate-700 rounded-2xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-600"
+            className="w-full h-40 bg-[#1e293b]/50 border border-[#334155] rounded-2xl p-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#3b82f6] placeholder:text-[#475569]"
             placeholder="請在此輸入這一團的特殊狀況或心得，將會一起匯出至 PDF 報告中..."
           />
         </section>
 
         {/* Report Footer for PDF */}
-        <div className="pt-10 border-t border-slate-800 text-center text-xs text-slate-600">
+        <div className="pt-10 border-t border-[#1e293b] text-center text-xs text-[#64748b]">
           報告生成時間: {new Date().toLocaleString()} | Tour Master AI 輔助生成
         </div>
       </div>
