@@ -58,7 +58,8 @@ export default function LedgerPage() {
     receipt_url: ''
   });
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   // Stats
   const stats = React.useMemo(() => {
@@ -112,6 +113,8 @@ export default function LedgerPage() {
       // Auto OCR
       await performOCR(file);
     }
+    // Reset input so same file can be selected again if needed
+    e.target.value = '';
   };
 
   const performOCR = async (file: File) => {
@@ -240,6 +243,9 @@ export default function LedgerPage() {
       receipt_file: null,
       receipt_url: ledger.receipt_url || ''
     });
+    // Reset inputs
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
+    if (galleryInputRef.current) galleryInputRef.current.value = '';
     setShowAddModal(true);
   };
 
@@ -277,6 +283,9 @@ export default function LedgerPage() {
       receipt_file: null,
       receipt_url: ''
     });
+    // Reset file inputs if they exist
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
+    if (galleryInputRef.current) galleryInputRef.current.value = '';
   };
 
   return (
@@ -508,38 +517,74 @@ export default function LedgerPage() {
                 {/* Receipt Upload (Camera) */}
                 <div className="space-y-2">
                   <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">收據照片 (拍照或從相簿)</label>
-                  <div 
-                    onClick={() => fileInputRef.current?.click()}
-                    className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all ${
-                      processingOCR ? 'border-blue-500 bg-blue-500/10' : 'border-slate-800 hover:border-slate-600 hover:bg-slate-800/50'
-                    }`}
-                  >
-                    <input 
-                      ref={fileInputRef}
-                      type="file" 
-                      accept="image/*" 
-                      // Removed capture="environment" to allow user to choose between Camera and Album in LINE/WebViews
-                      className="hidden"
-                      onChange={handleFileChange}
-                    />
-                    {processingOCR ? (
+                  
+                  {/* Hidden Inputs */}
+                  <input 
+                    ref={cameraInputRef}
+                    type="file" 
+                    accept="image/*" 
+                    capture="environment"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                  <input 
+                    ref={galleryInputRef}
+                    type="file" 
+                    accept="image/*" 
+                    // No capture attribute for gallery
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+
+                  {processingOCR ? (
+                    <div className="border-2 border-dashed border-blue-500 bg-blue-500/10 rounded-2xl p-6 text-center">
                       <div className="flex flex-col items-center gap-2 text-blue-400">
                         <Loader2 className="w-8 h-8 animate-spin" />
                         <span className="font-bold">AI 辨識金額中...</span>
                       </div>
-                    ) : formData.receipt_file ? (
+                    </div>
+                  ) : formData.receipt_file || formData.receipt_url ? (
+                    <div className="border-2 border-dashed border-green-500 bg-green-500/10 rounded-2xl p-6 relative">
                       <div className="flex flex-col items-center gap-2 text-green-400">
                         <Check className="w-8 h-8" />
                         <span className="font-bold">已選擇照片</span>
-                        <span className="text-xs text-slate-500">{formData.receipt_file.name}</span>
+                        <span className="text-xs text-slate-500">
+                          {formData.receipt_file ? formData.receipt_file.name : '已儲存的收據'}
+                        </span>
                       </div>
-                    ) : (
-                      <div className="flex flex-col items-center gap-2 text-slate-500">
-                        <Camera className="w-8 h-8" />
-                        <span className="font-bold">點擊拍照或上傳圖片</span>
-                      </div>
-                    )}
-                  </div>
+                      <button 
+                        type="button"
+                        onClick={() => setFormData({...formData, receipt_file: null, receipt_url: ''})}
+                        className="absolute top-2 right-2 p-1 bg-slate-800 rounded-full text-slate-400 hover:text-white"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-4">
+                      <button
+                        type="button"
+                        onClick={() => cameraInputRef.current?.click()}
+                        className="flex flex-col items-center gap-3 bg-slate-800 hover:bg-slate-700 p-6 rounded-2xl border-2 border-slate-700 hover:border-blue-500 transition-all group"
+                      >
+                        <div className="w-12 h-12 bg-slate-900 rounded-full flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
+                          <Camera className="w-6 h-6" />
+                        </div>
+                        <span className="font-black text-white">立即拍照</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => galleryInputRef.current?.click()}
+                        className="flex flex-col items-center gap-3 bg-slate-800 hover:bg-slate-700 p-6 rounded-2xl border-2 border-slate-700 hover:border-purple-500 transition-all group"
+                      >
+                        <div className="w-12 h-12 bg-slate-900 rounded-full flex items-center justify-center text-purple-500 group-hover:scale-110 transition-transform">
+                          <Wallet className="w-6 h-6" />
+                        </div>
+                        <span className="font-black text-white">從相簿選擇</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Submit */}
