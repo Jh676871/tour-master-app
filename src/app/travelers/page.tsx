@@ -16,7 +16,8 @@ import {
   Save,
   Search,
   User,
-  Clock
+  Clock,
+  AlertTriangle
 } from 'lucide-react';
 import Link from 'next/link';
 import * as XLSX from 'xlsx';
@@ -37,6 +38,7 @@ export default function TravelersPage() {
   const [roomMappings, setRoomMappings] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [travelerToDelete, setTravelerToDelete] = useState<string | null>(null);
   const [newTraveler, setNewTraveler] = useState({
     full_name: '',
     gender: '男',
@@ -317,21 +319,26 @@ export default function TravelersPage() {
     }
   };
 
-  const handleDeleteTraveler = async (id: string) => {
-    if (!confirm('確定要刪除這位旅客嗎？')) return;
+  const handleDeleteClick = (id: string) => {
+    setTravelerToDelete(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!travelerToDelete) return;
     
     setLoading(true);
     try {
       const { error } = await supabase
         .from('travelers')
         .delete()
-        .eq('id', id);
+        .eq('id', travelerToDelete);
 
       if (error) throw error;
 
-      setTravelers(prev => prev.filter(t => t.id !== id));
+      setTravelers(prev => prev.filter(t => t.id !== travelerToDelete));
       setMessage({ type: 'success', text: '旅客已刪除' });
       setTimeout(() => setMessage(null), 3000);
+      setTravelerToDelete(null);
     } catch (error: any) {
       alert(`刪除失敗: ${error.message}`);
     } finally {
@@ -612,7 +619,7 @@ export default function TravelersPage() {
                         </td>
                         <td className="px-8 py-6 text-right">
                           <button 
-                            onClick={() => handleDeleteTraveler(t.id)}
+                            onClick={() => handleDeleteClick(t.id)}
                             className="p-2 text-slate-600 hover:text-red-500 transition-colors"
                           >
                             <Trash2 className="w-5 h-5" />
@@ -636,7 +643,7 @@ export default function TravelersPage() {
                         </div>
                       </div>
                       <button 
-                        onClick={() => handleDeleteTraveler(t.id)}
+                        onClick={() => handleDeleteClick(t.id)}
                         className="p-3 text-slate-600 hover:text-red-500 transition-colors bg-slate-900 rounded-xl min-w-[48px] min-h-[48px] flex items-center justify-center"
                       >
                         <Trash2 className="w-5 h-5" />
@@ -822,6 +829,43 @@ export default function TravelersPage() {
               >
                 {loading ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : '確認新增'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {travelerToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setTravelerToDelete(null)}></div>
+          <div className="relative bg-slate-900 border-2 border-slate-800 rounded-[3rem] p-10 w-full max-w-md shadow-2xl">
+            <div className="flex flex-col items-center text-center gap-6">
+              <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center">
+                <AlertTriangle className="w-10 h-10 text-red-500" />
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="text-2xl font-black">確定要刪除嗎？</h3>
+                <p className="text-slate-400 font-bold">
+                  此動作無法復原，確定要永久刪除這位旅客？
+                </p>
+              </div>
+
+              <div className="flex gap-4 w-full pt-4">
+                <button 
+                  onClick={() => setTravelerToDelete(null)}
+                  className="flex-1 bg-slate-800 hover:bg-slate-700 text-white py-4 rounded-2xl font-black transition-all"
+                >
+                  取消
+                </button>
+                <button 
+                  onClick={confirmDelete}
+                  className="flex-1 bg-red-600 hover:bg-red-500 text-white py-4 rounded-2xl font-black transition-all shadow-lg shadow-red-900/40 flex items-center justify-center gap-2"
+                >
+                  <Trash2 className="w-5 h-5" />
+                  確認刪除
+                </button>
+              </div>
             </div>
           </div>
         </div>

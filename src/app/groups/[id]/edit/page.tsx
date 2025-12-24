@@ -29,7 +29,8 @@ import {
   Copy,
   Navigation,
   UtensilsCrossed,
-  LayoutList
+  LayoutList,
+  AlertTriangle
 } from 'lucide-react';
 import Link from 'next/link';
 import { Group, Hotel, Itinerary, Traveler, TravelerRoom, Spot } from '@/types/database';
@@ -62,9 +63,11 @@ export default function GroupEditPage() {
   const [isAIPolishing, setIsAIPolishing] = useState(false);
 
   // UI State
-  const [activeDayIndex, setActiveDayIndex] = useState(0);
   const [activeSpotForTable, setActiveSpotForTable] = useState<any>(null);
   const [showTableModal, setShowTableModal] = useState(false);
+  const [tableToDelete, setTableToDelete] = useState<string | null>(null);
+  const [spotToRemove, setSpotToRemove] = useState<string | null>(null);
+  const [isRemovingHotel, setIsRemovingHotel] = useState(false);
 
   // AI Helper
   const handleAIAutoFill = async () => {
@@ -170,21 +173,27 @@ export default function GroupEditPage() {
     }
   };
 
-  const handleDeleteTable = async (tableId: string) => {
-    if (!confirm('確定要刪除此桌位嗎？')) return;
+  const handleDeleteTableClick = (tableId: string) => {
+    setTableToDelete(tableId);
+  };
+
+  const confirmDeleteTable = async () => {
+    if (!tableToDelete) return;
+    
     try {
       const { error } = await supabase
         .from('itinerary_spot_tables')
         .delete()
-        .eq('id', tableId);
+        .eq('id', tableToDelete);
       
       if (error) throw error;
       
       const key = `${activeSpotForTable.itinerary_id}_${activeSpotForTable.spot_id}`;
       setTables(prev => ({
         ...prev,
-        [key]: prev[key].filter(t => t.id !== tableId)
+        [key]: prev[key].filter(t => t.id !== tableToDelete)
       }));
+      setTableToDelete(null);
     } catch (error: any) {
       alert(`刪除桌位失敗: ${error.message}`);
     }
@@ -221,19 +230,36 @@ export default function GroupEditPage() {
     setSpotSearchTerm('');
   };
 
-  const handleRemoveSpotFromItinerary = (spotId: string) => {
+  const handleRemoveSpotClick = (spotId: string) => {
+    setSpotToRemove(spotId);
+  };
+
+  const confirmRemoveSpot = () => {
+    if (!spotToRemove) return;
     const currentItin = itineraries[activeDayIndex];
     if (!currentItin.id) return;
 
     const currentSpots = itinerarySpots[currentItin.id] || [];
     const updatedSpots = currentSpots
-      .filter(s => s.spot_id !== spotId)
+      .filter(s => s.spot_id !== spotToRemove)
       .map((s, idx) => ({ ...s, sort_order: idx }));
 
     setItinerarySpots({
       ...itinerarySpots,
       [currentItin.id]: updatedSpots
     });
+    setSpotToRemove(null);
+  };
+
+  const handleRemoveHotelClick = () => {
+    setIsRemovingHotel(true);
+  };
+
+  const confirmRemoveHotel = () => {
+    const updated = [...itineraries];
+    updated[activeDayIndex].hotel_id = null;
+    setItineraries(updated);
+    setIsRemovingHotel(false);
   };
 
   const handleMoveSpot = (spotId: string, direction: 'up' | 'down') => {
@@ -766,11 +792,7 @@ export default function GroupEditPage() {
                                 </div>
                               </div>
                               <button 
-                                onClick={() => {
-                                  const updated = [...itineraries];
-                                  updated[activeDayIndex].hotel_id = null;
-                                  setItineraries(updated);
-                                }}
+                                onClick={handleRemoveHotelClick}
                                 className="p-2 hover:bg-red-500/10 text-slate-600 hover:text-red-500 rounded-xl transition-all"
                               >
                                 <Trash2 className="w-5 h-5" />
@@ -1015,7 +1037,7 @@ export default function GroupEditPage() {
                                   </a>
                                 )}
                                 <button 
-                                  onClick={() => handleRemoveSpotFromItinerary(itinSpot.spot_id)}
+                                  onClick={() => handleRemoveSpotClick(itinSpot.spot_id)}
                                   className="p-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-xl transition-all"
                                   title="移除景點"
                                 >
@@ -1198,7 +1220,7 @@ export default function GroupEditPage() {
                         <span className="font-black text-lg">號桌</span>
                       </div>
                       <button 
-                        onClick={() => handleDeleteTable(table.id)}
+                        onClick={() => handleDeleteTableClick(table.id)}
                         className="p-2 hover:bg-red-500/10 text-slate-600 hover:text-red-500 rounded-lg transition-all"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -1293,6 +1315,117 @@ export default function GroupEditPage() {
         </div>
       )}
     </main>
+
+      {/* Delete Table Confirmation Modal */}
+      {tableToDelete && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-6">
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setTableToDelete(null)}></div>
+          <div className="relative bg-slate-900 border-2 border-slate-800 rounded-[3rem] p-10 w-full max-w-md shadow-2xl">
+            <div className="flex flex-col items-center text-center gap-6">
+              <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center">
+                <AlertTriangle className="w-10 h-10 text-red-500" />
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="text-2xl font-black">確定要刪除此桌位嗎？</h3>
+                <p className="text-slate-400 font-bold">
+                  此動作無法復原，桌位內的團員將需要重新分配。
+                </p>
+              </div>
+
+              <div className="flex gap-4 w-full pt-4">
+                <button 
+                  onClick={() => setTableToDelete(null)}
+                  className="flex-1 bg-slate-800 hover:bg-slate-700 text-white py-4 rounded-2xl font-black transition-all"
+                >
+                  取消
+                </button>
+                <button 
+                  onClick={confirmDeleteTable}
+                  className="flex-1 bg-red-600 hover:bg-red-500 text-white py-4 rounded-2xl font-black transition-all shadow-lg shadow-red-900/40 flex items-center justify-center gap-2"
+                >
+                  <Trash2 className="w-5 h-5" />
+                  確認刪除
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Remove Spot Confirmation Modal */}
+      {spotToRemove && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setSpotToRemove(null)}></div>
+          <div className="relative bg-slate-900 border-2 border-slate-800 rounded-[3rem] p-10 w-full max-w-md shadow-2xl">
+            <div className="flex flex-col items-center text-center gap-6">
+              <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center">
+                <AlertTriangle className="w-10 h-10 text-red-500" />
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="text-2xl font-black">確定要移除此景點嗎？</h3>
+                <p className="text-slate-400 font-bold">
+                  將從今日行程中移除此景點，但不會刪除景點資料本身。
+                </p>
+              </div>
+
+              <div className="flex gap-4 w-full pt-4">
+                <button 
+                  onClick={() => setSpotToRemove(null)}
+                  className="flex-1 bg-slate-800 hover:bg-slate-700 text-white py-4 rounded-2xl font-black transition-all"
+                >
+                  取消
+                </button>
+                <button 
+                  onClick={confirmRemoveSpot}
+                  className="flex-1 bg-red-600 hover:bg-red-500 text-white py-4 rounded-2xl font-black transition-all shadow-lg shadow-red-900/40 flex items-center justify-center gap-2"
+                >
+                  <Trash2 className="w-5 h-5" />
+                  確認移除
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Remove Hotel Confirmation Modal */}
+      {isRemovingHotel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setIsRemovingHotel(false)}></div>
+          <div className="relative bg-slate-900 border-2 border-slate-800 rounded-[3rem] p-10 w-full max-w-md shadow-2xl">
+            <div className="flex flex-col items-center text-center gap-6">
+              <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center">
+                <AlertTriangle className="w-10 h-10 text-red-500" />
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="text-2xl font-black">確定要移除此飯店嗎？</h3>
+                <p className="text-slate-400 font-bold">
+                  將從今日行程中移除此飯店設定，但不會刪除飯店資料本身。
+                </p>
+              </div>
+
+              <div className="flex gap-4 w-full pt-4">
+                <button 
+                  onClick={() => setIsRemovingHotel(false)}
+                  className="flex-1 bg-slate-800 hover:bg-slate-700 text-white py-4 rounded-2xl font-black transition-all"
+                >
+                  取消
+                </button>
+                <button 
+                  onClick={confirmRemoveHotel}
+                  className="flex-1 bg-red-600 hover:bg-red-500 text-white py-4 rounded-2xl font-black transition-all shadow-lg shadow-red-900/40 flex items-center justify-center gap-2"
+                >
+                  <Trash2 className="w-5 h-5" />
+                  確認移除
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add Hotel Modal */}
       {showAddHotelModal && (

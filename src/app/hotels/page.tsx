@@ -20,7 +20,8 @@ import {
   X,
   Save,
   Image as ImageIcon,
-  Upload
+  Upload,
+  AlertTriangle
 } from 'lucide-react';
 import Link from 'next/link';
 import { Hotel } from '@/types/database';
@@ -31,6 +32,7 @@ export default function HotelsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingHotel, setEditingHotel] = useState<Hotel | null>(null);
+  const [hotelToDelete, setHotelToDelete] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -212,16 +214,21 @@ export default function HotelsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('確定要刪除此飯店嗎？這可能會影響已關聯的行程。')) return;
+  const handleDeleteClick = (id: string) => {
+    setHotelToDelete(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!hotelToDelete) return;
     
     try {
       const { error } = await supabase
         .from('hotels')
         .delete()
-        .eq('id', id);
+        .eq('id', hotelToDelete);
       if (error) throw error;
       fetchHotels();
+      setHotelToDelete(null);
     } catch (error: any) {
       alert(`刪除失敗: ${error.message}`);
     }
@@ -292,12 +299,14 @@ export default function HotelsPage() {
                   <div className="absolute top-4 right-4 flex gap-2">
                     <button 
                       onClick={() => handleOpenModal(hotel)}
+                      title="編輯飯店"
                       className="p-2 bg-slate-900/80 backdrop-blur-md hover:bg-blue-600 rounded-xl text-white transition-all border border-slate-700"
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button 
-                      onClick={() => handleDelete(hotel.id)}
+                      onClick={() => handleDeleteClick(hotel.id)}
+                      title="刪除飯店"
                       className="p-2 bg-slate-900/80 backdrop-blur-md hover:bg-red-600 rounded-xl text-white transition-all border border-slate-700"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -542,6 +551,43 @@ export default function HotelsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {hotelToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setHotelToDelete(null)}></div>
+          <div className="relative bg-slate-900 border-2 border-slate-800 rounded-[3rem] p-10 w-full max-w-md shadow-2xl">
+            <div className="flex flex-col items-center text-center gap-6">
+              <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center">
+                <AlertTriangle className="w-10 h-10 text-red-500" />
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="text-2xl font-black">確定要刪除嗎？</h3>
+                <p className="text-slate-400 font-bold">
+                  此動作無法復原，且可能會影響已關聯的行程，確定要永久刪除此飯店？
+                </p>
+              </div>
+
+              <div className="flex gap-4 w-full pt-4">
+                <button 
+                  onClick={() => setHotelToDelete(null)}
+                  className="flex-1 bg-slate-800 hover:bg-slate-700 text-white py-4 rounded-2xl font-black transition-all"
+                >
+                  取消
+                </button>
+                <button 
+                  onClick={confirmDelete}
+                  className="flex-1 bg-red-600 hover:bg-red-500 text-white py-4 rounded-2xl font-black transition-all shadow-lg shadow-red-900/40 flex items-center justify-center gap-2"
+                >
+                  <Trash2 className="w-5 h-5" />
+                  確認刪除
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
