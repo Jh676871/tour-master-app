@@ -132,15 +132,31 @@ export default function HotelSettingsPage() {
 
   const handleUpdateItinerary = async (id: string, updates: Partial<Itinerary>) => {
     try {
+      // 移除 hotel 關聯對象，避免更新失敗
+      const { hotel, ...cleanUpdates } = updates as any;
+      
+      // 將空字串轉換為 null
+      Object.keys(cleanUpdates).forEach(key => {
+        if (cleanUpdates[key] === '') {
+          cleanUpdates[key] = null;
+        }
+      });
+
       const { error } = await supabase
         .from('itineraries')
-        .update(updates)
+        .update(cleanUpdates)
         .eq('id', id);
       
       if (error) throw error;
       setItineraries(itineraries.map(it => it.id === id ? { ...it, ...updates } : it));
     } catch (error: any) {
-      console.error('Update failed:', error);
+      console.error('Update failed details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      alert(`更新失敗: ${error.message || '未知錯誤'}`);
     }
   };
 

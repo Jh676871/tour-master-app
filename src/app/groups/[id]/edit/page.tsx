@@ -139,7 +139,16 @@ export default function GroupEditPage() {
       // 1. Update Itineraries
       for (const itin of itineraries) {
         const { hotel, ...itinData } = itin as any; // Remove joined hotel object
-        await supabase.from('itineraries').upsert(itinData);
+        
+        // 將空字串轉換為 null
+        Object.keys(itinData).forEach(key => {
+          if (itinData[key] === '') {
+            itinData[key] = null;
+          }
+        });
+
+        const { error } = await supabase.from('itineraries').upsert(itinData);
+        if (error) throw error;
       }
 
       // 2. Update Room Numbers
