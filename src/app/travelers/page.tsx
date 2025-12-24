@@ -547,10 +547,10 @@ export default function TravelersPage() {
             <button 
               onClick={saveRoomNumbers}
               disabled={loading || !selectedItineraryId}
-              className="bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-600 text-white px-8 py-3 rounded-2xl font-black flex items-center gap-2 transition-all shadow-lg shadow-blue-900/40"
+              title="儲存今日房號"
+              className="bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-600 text-white w-12 h-12 rounded-xl font-black flex items-center justify-center transition-all shadow-lg shadow-blue-900/40"
             >
-              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-              儲存今日房號
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-6 h-6" />}
             </button>
           </div>
 
