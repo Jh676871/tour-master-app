@@ -570,7 +570,7 @@ function TravelerContent() {
             {currentItinerary.hotel ? (
               <div id="hotel-section" className="bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden shadow-2xl">
                 {/* Header Image Section */}
-                <div className="relative h-64 w-full group">
+                <div className="relative h-64 w-full group overflow-hidden">
                   <Image
                     src={currentItinerary.hotel.image_url || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&q=80'}
                     alt={currentItinerary.hotel.name}
