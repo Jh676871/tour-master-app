@@ -462,17 +462,14 @@ export default function TravelerLIFFPage() {
           <button
             onClick={triggerSOS}
             disabled={sosLoading}
-            className="bg-red-600 hover:bg-red-500 text-white p-6 rounded-[2rem] font-black transition-all shadow-2xl shadow-red-900/40 active:scale-95 border-2 border-red-400 flex items-center justify-center gap-4 group"
+            className="bg-red-600 hover:bg-red-500 text-white px-6 py-4 rounded-2xl font-black transition-all shadow-lg shadow-red-900/40 active:scale-95 border-2 border-red-400 flex items-center justify-center gap-2 group w-full text-lg uppercase tracking-wider"
           >
             {sosLoading ? (
-              <Loader2 className="w-8 h-8 animate-spin" />
+              <Loader2 className="w-7 h-7 animate-spin" />
             ) : (
-              <AlertTriangle className="w-8 h-8 animate-bounce" />
+              <AlertTriangle className="w-7 h-7 animate-bounce" />
             )}
-            <div className="text-left">
-              <span className="block uppercase tracking-[0.2em] text-[10px] opacity-80">Emergency Help</span>
-              <span className="text-2xl uppercase tracking-widest">SOS 緊急求助</span>
-            </div>
+            <span>SOS 緊急求助</span>
           </button>
         </div>
 
@@ -666,21 +663,6 @@ export default function TravelerLIFFPage() {
               <Copy className="w-4 h-4" />
             </div>
           </button>
-
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] flex items-center justify-between">
-            <div className="flex items-center gap-5">
-              <div className="bg-orange-500/10 p-4 rounded-2xl text-orange-400">
-                <Wifi className="w-6 h-6" />
-              </div>
-              <div className="text-left">
-                <p className="text-slate-400 text-xs font-black uppercase tracking-widest">Wi-Fi 密碼</p>
-                <p className="font-bold text-slate-200">{currentItinerary?.hotel?.wifi_info || '請洽櫃檯'}</p>
-              </div>
-            </div>
-            <button onClick={() => currentItinerary?.hotel?.wifi_info && copyToClipboard(currentItinerary.hotel.wifi_info)} className="p-4 bg-slate-800 text-slate-500 rounded-lg min-w-[48px] min-h-[48px] flex items-center justify-center">
-              <Copy className="w-5 h-5" />
-            </button>
-          </div>
         </div>
 
         {/* Full Itinerary List */}
