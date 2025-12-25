@@ -24,7 +24,8 @@ import {
   Users,
   UtensilsCrossed,
   Clock,
-  QrCode
+  QrCode,
+  Bell
 } from 'lucide-react';
 import { Traveler, Group, Itinerary, Hotel } from '@/types/database';
 import TaxiMode from '@/components/TaxiMode';
@@ -596,6 +597,37 @@ function TravelerContent() {
 
                 {/* Details Body */}
                 <div className="p-6 space-y-6 bg-slate-900">
+                    {/* Time Info: Morning Call & Meeting Time */}
+                    {(currentItinerary.morning_call_time || currentItinerary.meeting_time) && (
+                      <div className="grid grid-cols-2 gap-4 pb-4 border-b border-slate-800/50">
+                        <div className="bg-slate-950 rounded-2xl p-4 border border-slate-800 relative group overflow-hidden">
+                          <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <Bell size={40} />
+                          </div>
+                          <div className="flex items-center gap-2 mb-2 text-orange-500">
+                            <Bell size={16} />
+                            <span className="text-[10px] font-black uppercase tracking-widest">MORNING CALL</span>
+                          </div>
+                          <p className="text-2xl font-black text-white tracking-tight">
+                            {currentItinerary.morning_call_time || '--:--'}
+                          </p>
+                        </div>
+
+                        <div className="bg-slate-950 rounded-2xl p-4 border border-slate-800 relative group overflow-hidden">
+                          <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <Users size={40} />
+                          </div>
+                          <div className="flex items-center gap-2 mb-2 text-blue-500">
+                            <Users size={16} />
+                            <span className="text-[10px] font-black uppercase tracking-widest">集合時間</span>
+                          </div>
+                          <p className="text-2xl font-black text-white tracking-tight">
+                            {currentItinerary.meeting_time || '--:--'}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Address */}
                     <div className="flex gap-4">
                       <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center shrink-0 text-blue-500">
