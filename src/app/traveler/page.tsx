@@ -599,29 +599,29 @@ function TravelerContent() {
                 <div className="p-6 space-y-6 bg-slate-900">
                     {/* Time Info: Morning Call & Meeting Time */}
                     {(currentItinerary.morning_call_time || currentItinerary.meeting_time) && (
-                      <div className="grid grid-cols-2 gap-4 pb-4 border-b border-slate-800/50">
-                        <div className="bg-slate-950 rounded-2xl p-4 border border-slate-800 relative group overflow-hidden">
+                      <div className="grid grid-cols-2 gap-2 pb-4 border-b border-slate-800/50">
+                        <div className="bg-slate-950 rounded-2xl p-3 border border-slate-800 relative group overflow-hidden">
                           <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
                             <Bell size={40} />
                           </div>
-                          <div className="flex items-center gap-2 mb-2 text-orange-500">
-                            <Bell size={16} />
+                          <div className="flex items-center gap-2 mb-1 text-orange-500">
+                            <Bell size={14} />
                             <span className="text-[10px] font-black uppercase tracking-widest">MORNING CALL</span>
                           </div>
-                          <p className="text-2xl font-black text-white tracking-tight">
+                          <p className="text-xl font-black text-white tracking-tighter whitespace-nowrap">
                             {formatTimeWithNextDate(currentItinerary.morning_call_time, currentItinerary.trip_date)}
                           </p>
                         </div>
 
-                        <div className="bg-slate-950 rounded-2xl p-4 border border-slate-800 relative group overflow-hidden">
+                        <div className="bg-slate-950 rounded-2xl p-3 border border-slate-800 relative group overflow-hidden">
                           <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
                             <Users size={40} />
                           </div>
-                          <div className="flex items-center gap-2 mb-2 text-blue-500">
-                            <Users size={16} />
+                          <div className="flex items-center gap-2 mb-1 text-blue-500">
+                            <Users size={14} />
                             <span className="text-[10px] font-black uppercase tracking-widest">集合時間</span>
                           </div>
-                          <p className="text-2xl font-black text-white tracking-tight">
+                          <p className="text-xl font-black text-white tracking-tighter whitespace-nowrap">
                             {formatTimeWithNextDate(currentItinerary.meeting_time, currentItinerary.trip_date)}
                           </p>
                         </div>
