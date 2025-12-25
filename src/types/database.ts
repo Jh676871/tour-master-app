@@ -15,6 +15,16 @@ export interface Hotel {
   created_at: string;
 }
 
+export interface Leader {
+  id: string;
+  name: string;
+  ename?: string;
+  phone?: string;
+  line_id?: string;
+  photo_url?: string;
+  created_at: string;
+}
+
 export interface Group {
   id: string;
   name: string;
@@ -24,6 +34,9 @@ export interface Group {
   flight_number?: string;
   departure_time?: string;
   destination_country?: string;
+  leader_id?: string;
+  leader?: Leader;
+  // Deprecated fields (kept for backward compatibility if needed, but should be removed eventually)
   leader_name?: string;
   leader_phone?: string;
   leader_photo?: string;

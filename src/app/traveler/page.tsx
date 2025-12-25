@@ -209,7 +209,7 @@ function TravelerContent() {
     // Fetch Group Info
     const { data: groupData } = await supabase
       .from('groups')
-      .select('*')
+      .select('*, leader:leaders(*)')
       .eq('id', groupId)
       .single();
     if (groupData) setGroup(groupData);
@@ -526,7 +526,13 @@ function TravelerContent() {
       <div className="p-6 space-y-6">
         {/* SOS Button Section */}
         <div className="grid grid-cols-1 gap-4">
-          {group && <LeaderCard group={group} />}
+          {group && <LeaderCard 
+            leader_name={group.leader?.name || group.leader_name}
+            leader_phone={group.leader?.phone || group.leader_phone}
+            leader_line_id={group.leader?.line_id || group.leader_line_id}
+            leader_photo={group.leader?.photo_url || group.leader_photo}
+            leader_ename={group.leader?.ename || group.leader_ename}
+          />}
           
           <button
             onClick={triggerSOS}

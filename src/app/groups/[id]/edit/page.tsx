@@ -34,7 +34,7 @@ import {
   Plane
 } from 'lucide-react';
 import Link from 'next/link';
-import { Group, Hotel, Itinerary, Traveler, TravelerRoom, Spot } from '@/types/database';
+import { Group, Hotel, Itinerary, Traveler, TravelerRoom, Spot, Leader } from '@/types/database';
 
 export default function GroupEditPage() {
   const params = useParams();
@@ -49,6 +49,7 @@ export default function GroupEditPage() {
   const [group, setGroup] = useState<Group | null>(null);
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [spots, setSpots] = useState<Spot[]>([]);
+  const [leaders, setLeaders] = useState<Leader[]>([]);
   const [itineraries, setItineraries] = useState<Itinerary[]>([]);
   const [activeDayIndex, setActiveDayIndex] = useState(0);
   const [itinerarySpots, setItinerarySpots] = useState<Record<string, any[]>>({}); // { itineraryId: spotObjects[] }
@@ -70,6 +71,17 @@ export default function GroupEditPage() {
   const [tableToDelete, setTableToDelete] = useState<string | null>(null);
   const [spotToRemove, setSpotToRemove] = useState<string | null>(null);
   const [isRemovingHotel, setIsRemovingHotel] = useState(false);
+  
+  // Leader Modal State
+  const [showLeaderModal, setShowLeaderModal] = useState(false);
+  const [editingLeader, setEditingLeader] = useState<Leader | null>(null);
+  const [newLeader, setNewLeader] = useState<Partial<Leader>>({
+    name: '',
+    ename: '',
+    phone: '',
+    line_id: '',
+    photo_url: ''
+  });
 
   // AI Helper
   const handleAIAutoFill = async () => {
@@ -433,7 +445,11 @@ export default function GroupEditPage() {
           
           if (travelerData) setTravelers(travelerData);
 
-          // Fetch Tables
+          // Fetch Leaders
+          const { data: leadersData } = await supabase.from('leaders').select('*').order('name');
+          if (leadersData) setLeaders(leadersData);
+
+          // Fetch Itinerary Spot Tables
           const { data: tableData } = await supabase
             .from('itinerary_spot_tables')
             .select('*');
@@ -484,13 +500,14 @@ export default function GroupEditPage() {
     setSaving(true);
     setMessage(null);
     try {
-      // 0. Update Group Info (Flight)
+      // 0. Update Group Info (Flight & Leader)
       if (group) {
         const { error: groupError } = await supabase
           .from('groups')
           .update({
             flight_number: group.flight_number,
-            departure_time: group.departure_time
+            departure_time: group.departure_time,
+            leader_id: group.leader_id
           })
           .eq('id', group.id);
         if (groupError) throw groupError;
@@ -686,8 +703,63 @@ export default function GroupEditPage() {
     );
   }
 
+  const handleSaveLeader = async () => {
+    try {
+      if (editingLeader) {
+        // Update existing
+        const { error } = await supabase
+          .from('leaders')
+          .update(newLeader)
+          .eq('id', editingLeader.id);
+        if (error) throw error;
+      } else {
+        // Create new
+        const { data, error } = await supabase
+          .from('leaders')
+          .insert(newLeader)
+          .select()
+          .single();
+        if (error) throw error;
+        
+        // Auto select new leader
+        if (group && data) {
+          setGroup({ ...group, leader_id: data.id });
+        }
+      }
+
+      // Refresh leaders
+      const { data: leadersData } = await supabase.from('leaders').select('*').order('name');
+      if (leadersData) setLeaders(leadersData);
+      
+      setShowLeaderModal(false);
+      setEditingLeader(null);
+      setNewLeader({ name: '', ename: '', phone: '', line_id: '', photo_url: '' });
+      setMessage({ type: 'success', text: '領隊資料已儲存' });
+    } catch (error: any) {
+      console.error('Error saving leader:', error);
+      setMessage({ type: 'error', text: error.message || '儲存失敗' });
+    }
+  };
+
+  const openLeaderModal = (leader?: Leader) => {
+    if (leader) {
+      setEditingLeader(leader);
+      setNewLeader({
+        name: leader.name,
+        ename: leader.ename,
+        phone: leader.phone,
+        line_id: leader.line_id,
+        photo_url: leader.photo_url
+      });
+    } else {
+      setEditingLeader(null);
+      setNewLeader({ name: '', ename: '', phone: '', line_id: '', photo_url: '' });
+    }
+    setShowLeaderModal(true);
+  };
+
   return (
-    <div className="min-h-screen bg-slate-950 text-white pb-20">
+    <div className="min-h-screen bg-slate-950 text-slate-200 pb-20">
       {/* Header */}
       <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-30 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -762,64 +834,79 @@ export default function GroupEditPage() {
 
         {/* Leader Info */}
         <section className="bg-slate-900 rounded-[2.5rem] border-2 border-slate-800 p-8 shadow-xl mb-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="bg-green-600/20 p-3 rounded-2xl">
-              <Users className="w-6 h-6 text-green-500" />
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="bg-green-600/20 p-3 rounded-2xl">
+                <Users className="w-6 h-6 text-green-500" />
+              </div>
+              <h2 className="text-2xl font-black tracking-tight">領隊資訊 (Leader Info)</h2>
             </div>
-            <h2 className="text-2xl font-black tracking-tight">領隊資訊 (Leader Info)</h2>
+            <button
+              onClick={() => openLeaderModal()}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-xl font-bold transition-all text-sm"
+            >
+              <Plus size={18} />
+              新增領隊
+            </button>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-6">
             <div className="space-y-2">
-              <label className="text-xs font-black text-slate-500 uppercase tracking-widest pl-1">領隊姓名 (中文)</label>
-              <input
-                type="text"
-                value={group?.leader_name || ''}
-                onChange={(e) => group && setGroup({ ...group, leader_name: e.target.value })}
-                placeholder="e.g. 王小明"
-                className="w-full bg-slate-950 border-2 border-slate-800 rounded-xl px-4 py-3 font-bold focus:border-blue-500 outline-none transition-all"
-              />
+              <label className="text-xs font-black text-slate-500 uppercase tracking-widest pl-1">選擇領隊 (Select Leader)</label>
+              <div className="flex gap-2">
+                <select
+                  value={group?.leader_id || ''}
+                  onChange={(e) => group && setGroup({ ...group, leader_id: e.target.value })}
+                  className="w-full bg-slate-950 border-2 border-slate-800 rounded-xl px-4 py-3 font-bold focus:border-blue-500 outline-none transition-all appearance-none"
+                >
+                  <option value="">-- 請選擇領隊 --</option>
+                  {leaders.map(leader => (
+                    <option key={leader.id} value={leader.id}>
+                      {leader.name} {leader.ename ? `(${leader.ename})` : ''}
+                    </option>
+                  ))}
+                </select>
+                {group?.leader_id && (
+                  <button
+                    onClick={() => {
+                      const leader = leaders.find(l => l.id === group.leader_id);
+                      if (leader) openLeaderModal(leader);
+                    }}
+                    className="flex-none px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold transition-all"
+                  >
+                    編輯資料
+                  </button>
+                )}
+              </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-xs font-black text-slate-500 uppercase tracking-widest pl-1">領隊姓名 (英文)</label>
-              <input
-                type="text"
-                value={group?.leader_ename || ''}
-                onChange={(e) => group && setGroup({ ...group, leader_ename: e.target.value })}
-                placeholder="e.g. Xiao-Ming Wang"
-                className="w-full bg-slate-950 border-2 border-slate-800 rounded-xl px-4 py-3 font-bold focus:border-blue-500 outline-none transition-all"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-black text-slate-500 uppercase tracking-widest pl-1">領隊電話</label>
-              <input
-                type="text"
-                value={group?.leader_phone || ''}
-                onChange={(e) => group && setGroup({ ...group, leader_phone: e.target.value })}
-                placeholder="e.g. +886 912 345 678"
-                className="w-full bg-slate-950 border-2 border-slate-800 rounded-xl px-4 py-3 font-bold focus:border-blue-500 outline-none transition-all"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-black text-slate-500 uppercase tracking-widest pl-1">LINE ID</label>
-              <input
-                type="text"
-                value={group?.leader_line_id || ''}
-                onChange={(e) => group && setGroup({ ...group, leader_line_id: e.target.value })}
-                placeholder="e.g. tourleader123"
-                className="w-full bg-slate-950 border-2 border-slate-800 rounded-xl px-4 py-3 font-bold focus:border-blue-500 outline-none transition-all"
-              />
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <label className="text-xs font-black text-slate-500 uppercase tracking-widest pl-1">領隊照片 URL</label>
-              <input
-                type="text"
-                value={group?.leader_photo || ''}
-                onChange={(e) => group && setGroup({ ...group, leader_photo: e.target.value })}
-                placeholder="https://..."
-                className="w-full bg-slate-950 border-2 border-slate-800 rounded-xl px-4 py-3 font-bold focus:border-blue-500 outline-none transition-all"
-              />
-            </div>
+
+            {/* Display Selected Leader Info (Read-only Preview) */}
+            {group?.leader_id && (() => {
+              const selectedLeader = leaders.find(l => l.id === group.leader_id);
+              if (!selectedLeader) return null;
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-950/50 p-4 rounded-xl border border-slate-800">
+                  <div>
+                    <span className="text-xs text-slate-500 block">姓名</span>
+                    <span className="font-bold">{selectedLeader.name} {selectedLeader.ename}</span>
+                  </div>
+                  <div>
+                    <span className="text-xs text-slate-500 block">電話</span>
+                    <span className="font-bold">{selectedLeader.phone || '-'}</span>
+                  </div>
+                  <div>
+                    <span className="text-xs text-slate-500 block">LINE ID</span>
+                    <span className="font-bold">{selectedLeader.line_id || '-'}</span>
+                  </div>
+                  {selectedLeader.photo_url && (
+                    <div className="md:col-span-2">
+                      <span className="text-xs text-slate-500 block mb-1">照片預覽</span>
+                      <img src={selectedLeader.photo_url} alt="Leader" className="w-16 h-16 rounded-full object-cover border-2 border-slate-700" />
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </section>
 
@@ -1298,7 +1385,98 @@ export default function GroupEditPage() {
             </section>
           </div>
         </div>
-        {/* Table Management Modal */}
+        {/* Leader Modal */}
+      {showLeaderModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-slate-900 rounded-[2rem] border-2 border-slate-800 w-full max-w-lg shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="p-6 border-b border-slate-800 flex justify-between items-center">
+              <h3 className="text-xl font-black">{editingLeader ? '編輯領隊資料' : '新增領隊'}</h3>
+              <button 
+                onClick={() => setShowLeaderModal(false)}
+                className="p-2 hover:bg-slate-800 rounded-full transition-colors"
+              >
+                <Trash2 className="w-5 h-5 text-slate-500 rotate-45" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-500 uppercase tracking-widest pl-1">姓名 (中文)</label>
+                  <input
+                    type="text"
+                    value={newLeader.name || ''}
+                    onChange={(e) => setNewLeader({ ...newLeader, name: e.target.value })}
+                    placeholder="王小明"
+                    className="w-full bg-slate-950 border-2 border-slate-800 rounded-xl px-4 py-3 font-bold focus:border-blue-500 outline-none transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-500 uppercase tracking-widest pl-1">姓名 (英文)</label>
+                  <input
+                    type="text"
+                    value={newLeader.ename || ''}
+                    onChange={(e) => setNewLeader({ ...newLeader, ename: e.target.value })}
+                    placeholder="Xiao-Ming Wang"
+                    className="w-full bg-slate-950 border-2 border-slate-800 rounded-xl px-4 py-3 font-bold focus:border-blue-500 outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-500 uppercase tracking-widest pl-1">聯絡電話</label>
+                <input
+                  type="text"
+                  value={newLeader.phone || ''}
+                  onChange={(e) => setNewLeader({ ...newLeader, phone: e.target.value })}
+                  placeholder="+886 912 345 678"
+                  className="w-full bg-slate-950 border-2 border-slate-800 rounded-xl px-4 py-3 font-bold focus:border-blue-500 outline-none transition-all"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-500 uppercase tracking-widest pl-1">LINE ID</label>
+                <input
+                  type="text"
+                  value={newLeader.line_id || ''}
+                  onChange={(e) => setNewLeader({ ...newLeader, line_id: e.target.value })}
+                  placeholder="line_id_example"
+                  className="w-full bg-slate-950 border-2 border-slate-800 rounded-xl px-4 py-3 font-bold focus:border-blue-500 outline-none transition-all"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-500 uppercase tracking-widest pl-1">照片 URL</label>
+                <input
+                  type="text"
+                  value={newLeader.photo_url || ''}
+                  onChange={(e) => setNewLeader({ ...newLeader, photo_url: e.target.value })}
+                  placeholder="https://..."
+                  className="w-full bg-slate-950 border-2 border-slate-800 rounded-xl px-4 py-3 font-bold focus:border-blue-500 outline-none transition-all"
+                />
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-slate-800 flex justify-end gap-3">
+              <button
+                onClick={() => setShowLeaderModal(false)}
+                className="px-6 py-3 rounded-xl font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleSaveLeader}
+                disabled={!newLeader.name}
+                className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-900/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                儲存領隊
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Spot Table Modal */}
       {showTableModal && activeSpotForTable && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
           <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setShowTableModal(false)}></div>
