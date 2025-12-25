@@ -19,17 +19,41 @@ export default function TaxiMode({ hotel, leaderPhone }: TaxiModeProps) {
     window.speechSynthesis.cancel(); // Stop speaking when closed
   };
 
+  const detectLanguage = (text: string) => {
+    if (/[\u3040-\u309f\u30a0-\u30ff]/.test(text)) return 'ja-JP'; // Hiragana/Katakana
+    if (/[\uac00-\ud7af]/.test(text)) return 'ko-KR'; // Hangul
+    if (/[\u0e00-\u0e7f]/.test(text)) return 'th-TH'; // Thai
+    return 'zh-TW'; // Default to Traditional Chinese
+  };
+
   const handleSpeak = () => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel(); // Stop any current speech
-      const text = `${hotel.local_name || hotel.name}。${hotel.local_address || hotel.address}`;
+    if (typeof window === 'undefined') return;
+    
+    const text = `${hotel.local_name || hotel.name}。${hotel.local_address || hotel.address}`;
+    const lang = detectLanguage(text);
+    const win = window as any;
+
+    if (win.speechSynthesis) {
+      win.speechSynthesis.cancel(); // Stop any current speech
       const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = lang; // Crucial for mobile devices
       utterance.rate = 0.8; // Slower for clarity
       utterance.pitch = 1;
       utterance.volume = 1;
-      window.speechSynthesis.speak(utterance);
+
+      // Try to find a matching voice (Android sometimes needs this)
+      const voices = win.speechSynthesis.getVoices();
+      const voice = voices.find((v: any) => v.lang.includes(lang.replace('-', '_')) || v.lang.includes(lang));
+      if (voice) utterance.voice = voice;
+
+      win.speechSynthesis.speak(utterance);
     } else {
-      alert('您的裝置不支援語音朗讀功能');
+      // Fallback: Open Google Translate
+      if (confirm('您的裝置不支援內建朗讀，是否開啟 Google 翻譯協助發音？')) {
+        const targetLang = lang.split('-')[0]; // ja, ko, th, zh
+        const url = `https://translate.google.com/?sl=auto&tl=${targetLang}&text=${encodeURIComponent(text)}&op=translate`;
+        win.open(url, '_blank');
+      }
     }
   };
 
