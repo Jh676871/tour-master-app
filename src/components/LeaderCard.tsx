@@ -4,19 +4,21 @@ import { User, Phone, Download, MessageCircle, X } from 'lucide-react';
 import { Group } from '@/types/database';
 
 interface LeaderCardProps {
-  group: Group;
+  leader_name?: string | null;
+  leader_ename?: string | null;
+  leader_phone?: string | null;
+  leader_photo?: string | null;
+  leader_line_id?: string | null;
 }
 
-export default function LeaderCard({ group }: LeaderCardProps) {
+export default function LeaderCard({ 
+  leader_name,
+  leader_ename,
+  leader_phone,
+  leader_photo,
+  leader_line_id
+}: LeaderCardProps) {
   const [showQr, setShowQr] = useState(false);
-
-  const {
-    leader_name,
-    leader_ename,
-    leader_phone,
-    leader_photo,
-    leader_line_id
-  } = group;
 
   if (!leader_name) return null;
 

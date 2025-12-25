@@ -721,9 +721,16 @@ export default function GroupEditPage() {
           .single();
         if (error) throw error;
         
-        // Auto select new leader
+        // Auto select new leader & SAVE LINK immediately
         if (group && data) {
-          setGroup({ ...group, leader_id: data.id });
+          const updatedGroup = { ...group, leader_id: data.id };
+          setGroup(updatedGroup);
+          
+          // Force update group table to link leader
+          await supabase
+            .from('groups')
+            .update({ leader_id: data.id })
+            .eq('id', group.id);
         }
       }
 
