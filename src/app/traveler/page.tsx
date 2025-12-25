@@ -444,14 +444,16 @@ export default function TravelerLIFFPage() {
               setCurrentItinerary(itin as any);
               setCurrentRoom(roomMappings[itin.id] || '');
             }}
-            className={`flex-none w-14 h-14 rounded-2xl flex flex-col items-center justify-center transition-all border-2 ${
+            className={`flex-none w-16 h-16 rounded-2xl flex flex-col items-center justify-center transition-all border-2 ${
               activeDayIndex === idx 
                 ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-900/40' 
                 : 'bg-slate-900 border-slate-800 text-slate-500'
             }`}
           >
-            <span className="text-[10px] font-black uppercase tracking-tighter leading-none mb-1">D</span>
-            <span className="text-lg font-black leading-none">{idx + 1}</span>
+            <span className="text-[10px] font-black uppercase tracking-tighter leading-none mb-1">D{idx + 1}</span>
+            <span className="text-base font-black leading-none tracking-tight">
+              {itin.trip_date.split('-').slice(1).join('/')}
+            </span>
           </button>
         ))}
       </div>
