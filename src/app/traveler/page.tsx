@@ -565,17 +565,18 @@ function TravelerContent() {
         {/* Current Itinerary Info */}
         {currentItinerary && (
           <div className="space-y-6 pb-20">
-            {/* Hotel Card */}
+            {/* Unified Hotel Card */}
             {currentItinerary.hotel ? (
-              <div className="bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden shadow-2xl">
-                <div className="relative h-64 w-full">
+              <div id="hotel-section" className="bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden shadow-2xl">
+                {/* Header Image Section */}
+                <div className="relative h-64 w-full group">
                   <Image
                     src={currentItinerary.hotel.image_url || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&q=80'}
                     alt={currentItinerary.hotel.name}
                     fill
-                    className="object-cover"
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/50 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent" />
                   
                   {/* Room Number Badge */}
                   <div className="absolute top-6 right-6 bg-slate-900/90 backdrop-blur-md border border-slate-700 px-6 py-4 rounded-[1.5rem] shadow-xl text-center min-w-[120px]">
@@ -584,121 +585,117 @@ function TravelerContent() {
                       {currentRoom || '--'}
                     </p>
                   </div>
+
+                  {/* Hotel Name Overlay */}
+                  <div className="absolute bottom-0 left-0 p-8 w-full">
+                    <h3 className="text-3xl font-black leading-tight text-white mb-2 drop-shadow-lg">
+                      {currentItinerary.hotel.name}
+                    </h3>
+                    <div className="flex items-center gap-2 text-slate-300 font-bold text-sm drop-shadow-md">
+                      <Building2 size={16} />
+                      <span className="truncate max-w-[280px]">{currentItinerary.hotel.local_address || currentItinerary.hotel.address}</span>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="p-8 relative -mt-10">
-                  <h3 className="text-3xl font-black leading-tight mb-2 text-white">
-                    {currentItinerary.hotel.name}
-                  </h3>
-                  <div className="flex items-center gap-2 text-slate-400 font-bold mb-6">
-                    <Building2 size={18} />
-                    <span className="truncate max-w-[200px]">{currentItinerary.hotel.address}</span>
-                  </div>
+                {/* Details Body */}
+                <div className="p-6 space-y-6 bg-slate-900">
+                    {/* Address */}
+                    <div className="flex gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center shrink-0 text-blue-500">
+                        <MapPin size={24} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">HOTEL ADDRESS</p>
+                        <p className="text-lg font-bold text-white leading-relaxed mb-1">
+                          {currentItinerary.hotel.local_address || currentItinerary.hotel.address}
+                        </p>
+                        <p className="text-sm text-slate-400 font-medium">
+                          {currentItinerary.hotel.address}
+                        </p>
+                        <a 
+                          href={currentItinerary.hotel.google_map_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((currentItinerary.hotel.local_name || currentItinerary.hotel.name) + ' ' + (currentItinerary.hotel.local_address || currentItinerary.hotel.address))}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 mt-3 text-blue-400 font-bold text-sm hover:text-blue-300 transition-colors"
+                        >
+                          <MapIcon size={16} />
+                          開啟 Google Map 導航
+                        </a>
+                      </div>
+                    </div>
+
+                    {/* Phone */}
+                    <div className="flex gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-green-500/10 flex items-center justify-center shrink-0 text-green-500">
+                        <Phone size={24} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">FRONT DESK</p>
+                        <a href={`tel:${currentItinerary.hotel.phone}`} className="text-xl font-black text-white hover:text-green-400 transition-colors">
+                          {currentItinerary.hotel.phone}
+                        </a>
+                      </div>
+                    </div>
+
+                    {/* Wifi */}
+                    <div className="flex gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center shrink-0 text-purple-500">
+                        <Wifi size={24} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">WI-FI PASSWORD</p>
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center gap-3">
+                            <p className="text-xl font-black text-white">{currentItinerary.hotel.wifi_info || '無資訊'}</p>
+                            {currentItinerary.hotel.wifi_info && (
+                              <div className="flex gap-1">
+                                <button 
+                                  onClick={() => copyToClipboard(currentItinerary.hotel.wifi_info!)}
+                                  className="p-2 hover:bg-slate-800 rounded-full transition-colors text-slate-400"
+                                >
+                                  {copied ? <CheckCircle2 size={20} className="text-green-500" /> : <Copy size={20} />}
+                                </button>
+                                
+                                {parseWifiInfo(currentItinerary.hotel.wifi_info) && (
+                                  <button 
+                                    onClick={() => setShowWifiQr(!showWifiQr)}
+                                    className={`p-2 hover:bg-slate-800 rounded-full transition-colors ${showWifiQr ? 'text-blue-500' : 'text-slate-400'}`}
+                                  >
+                                    <QrCode size={20} />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* WiFi QR Code */}
+                          {showWifiQr && currentItinerary.hotel.wifi_info && (() => {
+                            const wifiData = parseWifiInfo(currentItinerary.hotel.wifi_info);
+                            if (!wifiData) return null;
+                            const wifiString = `WIFI:T:WPA;S:${wifiData.ssid};P:${wifiData.password};;`;
+                            
+                            return (
+                              <div className="bg-white p-4 rounded-xl self-start animate-in fade-in zoom-in duration-200">
+                                <QRCodeSVG value={wifiString} size={150} />
+                                <p className="text-slate-500 text-xs font-bold text-center mt-2">掃描自動連線</p>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Taxi Mode Button */}
+                    <div className="w-full pt-4 border-t border-slate-800/50">
+                       <TaxiMode hotel={currentItinerary.hotel} leaderPhone={group?.leader_phone} />
+                    </div>
                 </div>
               </div>
             ) : (
               <div className="bg-slate-900 border border-slate-800 rounded-[2rem] p-8 text-center">
                 <Building2 className="w-12 h-12 text-slate-700 mx-auto mb-4" />
                 <p className="text-slate-500 font-bold">尚未安排飯店</p>
-              </div>
-            )}
-
-            {/* Hotel Details & Taxi Mode */}
-            {currentItinerary?.hotel && (
-              <div id="hotel-section" className="space-y-4">
-                 {/* Details Card */}
-                 <div className="bg-slate-900 border border-slate-800 rounded-[2rem] p-6 space-y-6 shadow-xl">
-                     {/* Address */}
-                     <div className="flex gap-4">
-                       <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center shrink-0 text-blue-500">
-                         <MapPin size={24} />
-                       </div>
-                       <div className="flex-1">
-                         <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">HOTEL ADDRESS</p>
-                         <p className="text-lg font-bold text-white leading-relaxed mb-1">
-                           {currentItinerary.hotel.local_address || currentItinerary.hotel.address}
-                         </p>
-                         <p className="text-sm text-slate-400 font-medium">
-                           {currentItinerary.hotel.address}
-                         </p>
-                         <a 
-                           href={currentItinerary.hotel.google_map_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((currentItinerary.hotel.local_name || currentItinerary.hotel.name) + ' ' + (currentItinerary.hotel.local_address || currentItinerary.hotel.address))}`}
-                           target="_blank"
-                           rel="noopener noreferrer"
-                           className="inline-flex items-center gap-2 mt-3 text-blue-400 font-bold text-sm hover:text-blue-300 transition-colors"
-                         >
-                           <MapIcon size={16} />
-                           開啟 Google Map 導航
-                         </a>
-                       </div>
-                     </div>
-
-                     {/* Phone */}
-                     <div className="flex gap-4">
-                       <div className="w-12 h-12 rounded-2xl bg-green-500/10 flex items-center justify-center shrink-0 text-green-500">
-                         <Phone size={24} />
-                       </div>
-                       <div className="flex-1">
-                         <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">FRONT DESK</p>
-                         <a href={`tel:${currentItinerary.hotel.phone}`} className="text-xl font-black text-white hover:text-green-400 transition-colors">
-                           {currentItinerary.hotel.phone}
-                         </a>
-                       </div>
-                     </div>
-
-                     {/* Wifi */}
-                     <div className="flex gap-4">
-                       <div className="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center shrink-0 text-purple-500">
-                         <Wifi size={24} />
-                       </div>
-                       <div className="flex-1">
-                         <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">WI-FI PASSWORD</p>
-                         <div className="flex flex-col gap-2">
-                           <div className="flex items-center gap-3">
-                             <p className="text-xl font-black text-white">{currentItinerary.hotel.wifi_info || '無資訊'}</p>
-                             {currentItinerary.hotel.wifi_info && (
-                               <div className="flex gap-1">
-                                 <button 
-                                   onClick={() => copyToClipboard(currentItinerary.hotel.wifi_info!)}
-                                   className="p-2 hover:bg-slate-800 rounded-full transition-colors text-slate-400"
-                                 >
-                                   {copied ? <CheckCircle2 size={20} className="text-green-500" /> : <Copy size={20} />}
-                                 </button>
-                                 
-                                 {parseWifiInfo(currentItinerary.hotel.wifi_info) && (
-                                   <button 
-                                     onClick={() => setShowWifiQr(!showWifiQr)}
-                                     className={`p-2 hover:bg-slate-800 rounded-full transition-colors ${showWifiQr ? 'text-blue-500' : 'text-slate-400'}`}
-                                   >
-                                     <QrCode size={20} />
-                                   </button>
-                                 )}
-                               </div>
-                             )}
-                           </div>
-
-                           {/* WiFi QR Code */}
-                           {showWifiQr && currentItinerary.hotel.wifi_info && (() => {
-                             const wifiData = parseWifiInfo(currentItinerary.hotel.wifi_info);
-                             if (!wifiData) return null;
-                             const wifiString = `WIFI:T:WPA;S:${wifiData.ssid};P:${wifiData.password};;`;
-                             
-                             return (
-                               <div className="bg-white p-4 rounded-xl self-start animate-in fade-in zoom-in duration-200">
-                                 <QRCodeSVG value={wifiString} size={150} />
-                                 <p className="text-slate-500 text-xs font-bold text-center mt-2">掃描自動連線</p>
-                               </div>
-                             );
-                           })()}
-                         </div>
-                       </div>
-                     </div>
-                     
-                     {/* Taxi Mode Button */}
-                     <div className="w-full pt-4 border-t border-slate-800/50">
-                        <TaxiMode hotel={currentItinerary.hotel} leaderPhone={group?.leader_phone} />
-                     </div>
-                 </div>
               </div>
             )}
 
