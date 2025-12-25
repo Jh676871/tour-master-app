@@ -391,7 +391,12 @@ function TravelerContent() {
       const month = dateObj.getMonth() + 1;
       const date = dateObj.getDate();
       
-      return `${month}/${date} ${displayTime}`;
+      return (
+        <span className="flex items-center gap-2">
+          <span>{month}/{date}</span>
+          <span>{displayTime}</span>
+        </span>
+      );
     } catch (e) {
       return displayTime;
     }
