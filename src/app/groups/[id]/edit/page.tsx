@@ -741,6 +741,9 @@ export default function GroupEditPage() {
       setShowLeaderModal(false);
       setEditingLeader(null);
       setNewLeader({ name: '', ename: '', phone: '', line_id: '', photo_url: '' });
+      
+      // Explicit success notification
+      alert('領隊資料已成功儲存！');
       setMessage({ type: 'success', text: '領隊資料已儲存' });
     } catch (error: any) {
       console.error('Error saving leader:', error);
