@@ -609,7 +609,7 @@ function TravelerContent() {
                             <span className="text-[10px] font-black uppercase tracking-widest">MORNING CALL</span>
                           </div>
                           <p className="text-2xl font-black text-white tracking-tight">
-                            {currentItinerary.morning_call_time || '--:--'}
+                            {formatTimeWithNextDate(currentItinerary.morning_call_time, currentItinerary.trip_date)}
                           </p>
                         </div>
 
@@ -622,7 +622,7 @@ function TravelerContent() {
                             <span className="text-[10px] font-black uppercase tracking-widest">集合時間</span>
                           </div>
                           <p className="text-2xl font-black text-white tracking-tight">
-                            {currentItinerary.meeting_time || '--:--'}
+                            {formatTimeWithNextDate(currentItinerary.meeting_time, currentItinerary.trip_date)}
                           </p>
                         </div>
                       </div>
