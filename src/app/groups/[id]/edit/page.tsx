@@ -760,6 +760,69 @@ export default function GroupEditPage() {
           </div>
         </section>
 
+        {/* Leader Info */}
+        <section className="bg-slate-900 rounded-[2.5rem] border-2 border-slate-800 p-8 shadow-xl mb-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="bg-green-600/20 p-3 rounded-2xl">
+              <Users className="w-6 h-6 text-green-500" />
+            </div>
+            <h2 className="text-2xl font-black tracking-tight">領隊資訊 (Leader Info)</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-xs font-black text-slate-500 uppercase tracking-widest pl-1">領隊姓名 (中文)</label>
+              <input
+                type="text"
+                value={group?.leader_name || ''}
+                onChange={(e) => group && setGroup({ ...group, leader_name: e.target.value })}
+                placeholder="e.g. 王小明"
+                className="w-full bg-slate-950 border-2 border-slate-800 rounded-xl px-4 py-3 font-bold focus:border-blue-500 outline-none transition-all"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-black text-slate-500 uppercase tracking-widest pl-1">領隊姓名 (英文)</label>
+              <input
+                type="text"
+                value={group?.leader_ename || ''}
+                onChange={(e) => group && setGroup({ ...group, leader_ename: e.target.value })}
+                placeholder="e.g. Xiao-Ming Wang"
+                className="w-full bg-slate-950 border-2 border-slate-800 rounded-xl px-4 py-3 font-bold focus:border-blue-500 outline-none transition-all"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-black text-slate-500 uppercase tracking-widest pl-1">領隊電話</label>
+              <input
+                type="text"
+                value={group?.leader_phone || ''}
+                onChange={(e) => group && setGroup({ ...group, leader_phone: e.target.value })}
+                placeholder="e.g. +886 912 345 678"
+                className="w-full bg-slate-950 border-2 border-slate-800 rounded-xl px-4 py-3 font-bold focus:border-blue-500 outline-none transition-all"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-black text-slate-500 uppercase tracking-widest pl-1">LINE ID</label>
+              <input
+                type="text"
+                value={group?.leader_line_id || ''}
+                onChange={(e) => group && setGroup({ ...group, leader_line_id: e.target.value })}
+                placeholder="e.g. tourleader123"
+                className="w-full bg-slate-950 border-2 border-slate-800 rounded-xl px-4 py-3 font-bold focus:border-blue-500 outline-none transition-all"
+              />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-xs font-black text-slate-500 uppercase tracking-widest pl-1">領隊照片 URL</label>
+              <input
+                type="text"
+                value={group?.leader_photo || ''}
+                onChange={(e) => group && setGroup({ ...group, leader_photo: e.target.value })}
+                placeholder="https://..."
+                className="w-full bg-slate-950 border-2 border-slate-800 rounded-xl px-4 py-3 font-bold focus:border-blue-500 outline-none transition-all"
+              />
+            </div>
+          </div>
+        </section>
+
         {/* Day Selector Tabs */}
         <div className="flex gap-2 mb-8 overflow-x-auto pb-2 scrollbar-hide">
           {itineraries.map((itin, idx) => (

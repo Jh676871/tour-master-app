@@ -507,6 +507,7 @@ function TravelerContent() {
               setActiveDayIndex(idx);
               setCurrentItinerary(itin as any);
               setCurrentRoom(roomMappings[itin.id] || '');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             className={`flex-none w-16 h-16 rounded-2xl flex flex-col items-center justify-center transition-all border-2 ${
               activeDayIndex === idx 
@@ -515,7 +516,7 @@ function TravelerContent() {
             }`}
           >
             <span className="text-[10px] font-black uppercase tracking-tighter leading-none mb-1">D{idx + 1}</span>
-            <span className="text-xl font-black leading-none tracking-tight">
+            <span className="text-2xl font-black leading-none tracking-tight">
               {itin.trip_date.split('-').slice(1).join('/')}
             </span>
           </button>
@@ -645,11 +646,11 @@ function TravelerContent() {
                          </div>
                        </div>
                      </div>
-                 </div>
-
-                 {/* Taxi Mode Button */}
-                 <div className="w-full">
-                    <TaxiMode hotel={currentItinerary.hotel} leaderPhone={group?.leader_phone} />
+                     
+                     {/* Taxi Mode Button */}
+                     <div className="w-full pt-4 border-t border-slate-800/50">
+                        <TaxiMode hotel={currentItinerary.hotel} leaderPhone={group?.leader_phone} />
+                     </div>
                  </div>
               </div>
             )}
