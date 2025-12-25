@@ -26,6 +26,9 @@ export interface Group {
   destination_country?: string;
   leader_name?: string;
   leader_phone?: string;
+  leader_photo?: string;
+  leader_ename?: string;
+  leader_line_id?: string;
   created_at: string;
 }
 
