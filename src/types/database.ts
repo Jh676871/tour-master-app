@@ -20,7 +20,7 @@ export interface Group {
   start_date: string;
   end_date: string;
   flight_number?: string;
-  departure_date?: string;
+  departure_time?: string;
   destination_country?: string;
   created_at: string;
 }

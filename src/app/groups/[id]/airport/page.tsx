@@ -209,7 +209,7 @@ export default function AirportAssistant() {
         accept="image/*" 
         capture="environment"
         ref={fileInputRef} 
-        className="hidden" 
+        className="absolute opacity-0 w-1 h-1 overflow-hidden" 
         onChange={handleFileChange}
       />
 
