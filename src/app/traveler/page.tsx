@@ -524,29 +524,16 @@ function TravelerContent() {
       </div>
 
       <div className="p-6 space-y-6">
-        {/* SOS Button Section */}
-        <div className="grid grid-cols-1 gap-4">
-          {group && <LeaderCard 
-            leader_name={group.leader?.name || group.leader_name}
-            leader_phone={group.leader?.phone || group.leader_phone}
-            leader_line_id={group.leader?.line_id || group.leader_line_id}
-            leader_photo={group.leader?.photo_url || group.leader_photo}
-            leader_ename={group.leader?.ename || group.leader_ename}
-          />}
-          
-          <button
-            onClick={triggerSOS}
-            disabled={sosLoading}
-            className="bg-red-600 hover:bg-red-500 text-white px-6 py-4 rounded-2xl font-black transition-all shadow-lg shadow-red-900/40 active:scale-95 border-2 border-red-400 flex items-center justify-center gap-2 group w-full text-lg uppercase tracking-wider"
-          >
-            {sosLoading ? (
-              <Loader2 className="w-7 h-7 animate-spin" />
-            ) : (
-              <AlertTriangle className="w-7 h-7 animate-bounce" />
-            )}
-            {sosLoading ? '發送求助中...' : 'SOS 緊急求助'}
-          </button>
-        </div>
+        {/* Leader Card with Integrated SOS */}
+        {group && <LeaderCard 
+          leader_name={group.leader?.name || group.leader_name}
+          leader_phone={group.leader?.phone || group.leader_phone}
+          leader_line_id={group.leader?.line_id || group.leader_line_id}
+          leader_photo={group.leader?.photo_url || group.leader_photo}
+          leader_ename={group.leader?.ename || group.leader_ename}
+          onSOSClick={triggerSOS}
+          isSOSLoading={sosLoading}
+        />}
 
         {/* Current Itinerary Info */}
         {currentItinerary && (
