@@ -588,13 +588,9 @@ function TravelerContent() {
 
                   {/* Hotel Name Overlay */}
                   <div className="absolute bottom-0 left-0 p-8 w-full">
-                    <h3 className="text-3xl font-black leading-tight text-white mb-2 drop-shadow-lg">
+                    <h3 className="text-3xl font-black leading-tight text-white drop-shadow-lg">
                       {currentItinerary.hotel.name}
                     </h3>
-                    <div className="flex items-center gap-2 text-slate-300 font-bold text-sm drop-shadow-md">
-                      <Building2 size={16} />
-                      <span className="truncate max-w-[280px]">{currentItinerary.hotel.local_address || currentItinerary.hotel.address}</span>
-                    </div>
                   </div>
                 </div>
 
