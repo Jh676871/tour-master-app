@@ -26,6 +26,16 @@ export default function TaxiMode({ hotel, leaderPhone }: TaxiModeProps) {
     return 'zh-TW'; // Default to Traditional Chinese
   };
 
+  const playAudio = async (text: string, lang: string) => {
+    try {
+      const audio = new Audio(`/api/tts?text=${encodeURIComponent(text)}&lang=${lang}`);
+      await audio.play();
+    } catch (e) {
+      console.error('Audio playback failed', e);
+      alert('語音播放失敗，請檢查網路連線');
+    }
+  };
+
   const handleSpeak = () => {
     if (typeof window === 'undefined') return;
     
@@ -33,27 +43,39 @@ export default function TaxiMode({ hotel, leaderPhone }: TaxiModeProps) {
     const lang = detectLanguage(text);
     const win = window as any;
 
+    // First try Native TTS
     if (win.speechSynthesis) {
+      // Check if voices are loaded
+      const voices = win.speechSynthesis.getVoices();
+      
+      // If voices are empty (common in some WebViews), try to force API or wait?
+      // For immediate user satisfaction, if voices are 0, use API fallback.
+      if (voices.length === 0) {
+        console.warn('Native TTS voices empty, using API fallback');
+        playAudio(text, lang);
+        return;
+      }
+
       win.speechSynthesis.cancel(); // Stop any current speech
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = lang; // Crucial for mobile devices
-      utterance.rate = 0.8; // Slower for clarity
+      utterance.lang = lang; 
+      utterance.rate = 0.8; 
       utterance.pitch = 1;
       utterance.volume = 1;
 
-      // Try to find a matching voice (Android sometimes needs this)
-      const voices = win.speechSynthesis.getVoices();
       const voice = voices.find((v: any) => v.lang.includes(lang.replace('-', '_')) || v.lang.includes(lang));
       if (voice) utterance.voice = voice;
 
+      // Add error handling for utterance
+      utterance.onerror = (e: any) => {
+        console.error('Native TTS error', e);
+        playAudio(text, lang);
+      };
+
       win.speechSynthesis.speak(utterance);
     } else {
-      // Fallback: Open Google Translate
-      if (confirm('您的裝置不支援內建朗讀，是否開啟 Google 翻譯協助發音？')) {
-        const targetLang = lang.split('-')[0]; // ja, ko, th, zh
-        const url = `https://translate.google.com/?sl=auto&tl=${targetLang}&text=${encodeURIComponent(text)}&op=translate`;
-        win.open(url, '_blank');
-      }
+      // Fallback: Use our hidden API Proxy (no redirect)
+      playAudio(text, lang);
     }
   };
 
