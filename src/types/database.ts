@@ -19,6 +19,17 @@ export interface Group {
   group_code: string;
   start_date: string;
   end_date: string;
+  flight_number?: string;
+  departure_date?: string;
+  destination_country?: string;
+  created_at: string;
+}
+
+export interface ImmigrationTemplate {
+  id: string;
+  country_name: string;
+  template_image_url?: string;
+  instruction_text?: string;
   created_at: string;
 }
 
@@ -44,6 +55,8 @@ export interface Traveler {
   emergency_contact?: string;
   blood_type?: string;
   medical_notes?: string;
+  luggage_count?: number;
+  boarding_pass_url?: string;
   created_at: string;
 }
 

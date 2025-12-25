@@ -18,7 +18,20 @@ const AddGroupModal: React.FC<AddGroupModalProps> = ({ isOpen, onClose, onSucces
     name: '',
     start_date: '',
     end_date: '',
+    destination_country: 'Japan', // Default
   });
+
+  const COUNTRIES = [
+    { code: 'Japan', name: '日本 (Japan)' },
+    { code: 'Korea', name: '韓國 (Korea)' },
+    { code: 'Thailand', name: '泰國 (Thailand)' },
+    { code: 'Vietnam', name: '越南 (Vietnam)' },
+    { code: 'USA', name: '美國 (USA)' },
+    { code: 'UK', name: '英國 (UK)' },
+    { code: 'Europe', name: '歐洲 (Europe)' },
+    { code: 'Taiwan', name: '台灣 (Taiwan)' },
+    { code: 'Others', name: '其他 (Others)' },
+  ];
 
   if (!isOpen) return null;
 
@@ -36,6 +49,7 @@ const AddGroupModal: React.FC<AddGroupModalProps> = ({ isOpen, onClose, onSucces
             name: formData.name, 
             start_date: formData.start_date, 
             end_date: formData.end_date,
+            destination_country: formData.destination_country,
             group_code: groupCode
           }
         ])
@@ -49,7 +63,7 @@ const AddGroupModal: React.FC<AddGroupModalProps> = ({ isOpen, onClose, onSucces
         throw error;
       }
       
-      setFormData({ name: '', start_date: '', end_date: '' });
+      setFormData({ name: '', start_date: '', end_date: '', destination_country: 'Japan' });
       onClose();
       if (onSuccess) onSuccess();
       
@@ -95,6 +109,19 @@ const AddGroupModal: React.FC<AddGroupModalProps> = ({ isOpen, onClose, onSucces
             />
           </div>
           
+          <div className="space-y-2">
+            <label className="block text-xs font-black text-slate-500 uppercase tracking-widest ml-1">旅遊國家 / 地區</label>
+            <select
+              value={formData.destination_country}
+              onChange={(e) => setFormData({...formData, destination_country: e.target.value})}
+              className="w-full px-6 py-4 bg-slate-950 border-2 border-slate-800 rounded-2xl focus:outline-none focus:border-blue-500 text-lg font-bold text-white transition-all shadow-inner appearance-none"
+            >
+              {COUNTRIES.map(c => (
+                <option key={c.code} value={c.code}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-2">
               <label className="block text-xs font-black text-slate-500 uppercase tracking-widest ml-1">開始日期</label>

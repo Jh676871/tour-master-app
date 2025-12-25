@@ -38,9 +38,15 @@ export default function LedgerPage() {
   const [processingOCR, setProcessingOCR] = useState(false);
   const [ledgerToDelete, setLedgerToDelete] = useState<string | null>(null);
   const [editingLedgerId, setEditingLedgerId] = useState<string | null>(null);
+  const [currencyToDelete, setCurrencyToDelete] = useState<string | null>(null);
 
   // Settings Form State
-  const [settingsFormData, setSettingsFormData] = useState({
+  const [settingsFormData, setSettingsFormData] = useState<{
+    id?: string;
+    currency: string;
+    exchange_rate: string;
+    initial_balance: string;
+  }>({
     currency: 'USD',
     exchange_rate: '',
     initial_balance: ''
@@ -189,10 +195,48 @@ export default function LedgerPage() {
 
   const handleEditSettings = (setting: GroupCurrencySetting) => {
     setSettingsFormData({
+      id: setting.id,
       currency: setting.currency,
       exchange_rate: setting.exchange_rate.toString(),
       initial_balance: setting.initial_balance.toString()
     });
+  };
+
+  const handleDeleteCurrency = (id: string) => {
+    setCurrencyToDelete(id);
+  };
+
+  const confirmDeleteCurrency = async () => {
+    if (!currencyToDelete) return;
+
+    // Check if there are any ledgers using this currency
+    const currency = currencySettings.find(s => s.id === currencyToDelete)?.currency;
+    if (currency) {
+      const hasLedgers = ledgers.some(l => l.currency === currency);
+      if (hasLedgers) {
+        alert(`無法刪除 ${currency}：尚有使用此幣別的帳目。請先刪除或修改相關帳目。`);
+        setCurrencyToDelete(null);
+        return;
+      }
+    }
+
+    try {
+      const { error } = await supabase
+        .from('group_currency_settings')
+        .delete()
+        .eq('id', currencyToDelete);
+      
+      if (error) throw error;
+      
+      setCurrencySettings(currencySettings.filter(s => s.id !== currencyToDelete));
+      setCurrencyToDelete(null);
+      // Reset form if we were editing the deleted one
+      if (settingsFormData.id === currencyToDelete) {
+        setSettingsFormData({ currency: '', exchange_rate: '', initial_balance: '' });
+      }
+    } catch (error: any) {
+      alert('刪除失敗: ' + error.message);
+    }
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -508,7 +552,7 @@ export default function LedgerPage() {
                     <div className={`text-xl font-black ${
                       ledger.type === 'income' ? 'text-green-400' : 'text-white'
                     }`}>
-                      {ledger.type === 'income' ? '+' : '-'}${Math.round(ledger.amount * ledger.exchange_rate).toLocaleString()}
+                      {ledger.type === 'income' ? '+' : '-'} NT$ {Math.round(ledger.amount * ledger.exchange_rate).toLocaleString()}
                     </div>
                     <div className="flex items-center gap-1">
                       <button 
@@ -548,15 +592,24 @@ export default function LedgerPage() {
               {/* List Existing */}
               <div className="space-y-3">
                 {currencySettings.map(setting => (
-                  <div key={setting.id} onClick={() => handleEditSettings(setting)} className="bg-slate-800 p-4 rounded-xl flex items-center justify-between cursor-pointer hover:bg-slate-700 transition-colors">
-                    <div>
-                      <div className="font-black text-white">{setting.currency}</div>
-                      <div className="text-xs text-slate-400">匯率: {setting.exchange_rate}</div>
+                  <div key={setting.id} className="bg-slate-800 p-4 rounded-xl flex items-center justify-between group/item transition-colors hover:bg-slate-700">
+                    <div onClick={() => handleEditSettings(setting)} className="flex-1 cursor-pointer">
+                      <div className="font-black text-white flex items-center gap-2">
+                        {setting.currency}
+                        <span className="text-xs font-normal text-slate-500 bg-slate-900 px-2 py-0.5 rounded-full">
+                          {setting.id === settingsFormData.id ? '編輯中' : '點擊編輯'}
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-400 mt-1">
+                        匯率: {setting.exchange_rate} · 初始: {setting.initial_balance}
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <div className="font-bold text-green-400">初始: {setting.initial_balance}</div>
-                      <div className="text-xs text-slate-500">點擊編輯</div>
-                    </div>
+                    <button 
+                      onClick={() => handleDeleteCurrency(setting.id)}
+                      className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-full transition-colors opacity-0 group-hover/item:opacity-100 focus:opacity-100"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -564,7 +617,20 @@ export default function LedgerPage() {
               <div className="h-px bg-slate-800"></div>
 
               <form onSubmit={handleSettingsSubmit} className="space-y-4">
-                <h3 className="font-bold text-slate-400">新增/更新 幣別設定</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-slate-400">
+                    {settingsFormData.id ? '編輯幣別設定' : '新增幣別設定'}
+                  </h3>
+                  {settingsFormData.id && (
+                    <button 
+                      type="button"
+                      onClick={() => setSettingsFormData({ currency: '', exchange_rate: '', initial_balance: '' })}
+                      className="text-xs text-blue-400 hover:text-blue-300"
+                    >
+                      取消編輯
+                    </button>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">幣別代碼</label>
@@ -876,6 +942,38 @@ export default function LedgerPage() {
               </button>
               <button
                 onClick={confirmDelete}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-black transition-colors"
+              >
+                確認刪除
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Currency Delete Confirmation Modal */}
+      {currencyToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+          <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm" onClick={() => setCurrencyToDelete(null)}></div>
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-3xl shadow-2xl relative z-10 p-6 space-y-6 animate-in zoom-in-95 duration-200">
+            <div className="text-center space-y-2">
+              <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="w-8 h-8" />
+              </div>
+              <h3 className="text-xl font-black text-white">確定刪除此幣別？</h3>
+              <p className="text-slate-400 font-bold">
+                這將移除 {currencySettings.find(s => s.id === currencyToDelete)?.currency} 的匯率與初始資金設定。
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setCurrencyToDelete(null)}
+                className="flex-1 bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-xl font-black transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={confirmDeleteCurrency}
                 className="flex-1 bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-black transition-colors"
               >
                 確認刪除

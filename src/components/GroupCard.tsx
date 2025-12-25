@@ -18,7 +18,9 @@ const GroupCard: React.FC<GroupCardProps> = ({ id, name, startDate, endDate, mem
       <div className="absolute -top-24 -right-24 w-48 h-48 bg-blue-600/5 rounded-full blur-3xl group-hover:bg-blue-600/10 transition-colors"></div>
       
       <div className="flex justify-between items-start mb-6 relative z-10">
-        <h3 className="text-2xl font-black text-white tracking-tight leading-tight">{name}</h3>
+        <Link href={`/groups/${id}`} className="hover:text-blue-400 transition-colors">
+          <h3 className="text-2xl font-black text-white tracking-tight leading-tight">{name}</h3>
+        </Link>
         <span className="px-4 py-1.5 bg-blue-600/20 text-blue-400 text-xs font-black uppercase tracking-widest rounded-full border border-blue-500/30">
           進行中
         </span>
@@ -67,10 +69,10 @@ const GroupCard: React.FC<GroupCardProps> = ({ id, name, startDate, endDate, mem
             <Wallet className="w-4 h-4" />
           </Link>
           <Link 
-            href={`/groups/${id}/edit`}
+            href={`/groups/${id}`}
           className="flex items-center gap-2 bg-slate-900 hover:bg-blue-600 text-slate-400 hover:text-white px-5 py-2.5 rounded-xl font-black transition-all border border-slate-700 hover:border-blue-400 uppercase tracking-widest text-[10px]"
         >
-          <span>管理詳情</span>
+          <span>進入團務</span>
           <ChevronRight className="w-4 h-4" />
         </Link>
       </div>

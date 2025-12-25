@@ -20,7 +20,8 @@ import {
   Map as MapIcon,
   Utensils,
   Camera,
-  Users
+  Users,
+  Key
 } from 'lucide-react';
 import { Group, Hotel, Itinerary, Spot } from '@/types/database';
 
@@ -32,6 +33,7 @@ export default function GroupPreviewPage() {
   const [group, setGroup] = useState<Group | null>(null);
   const [itineraries, setItineraries] = useState<(Itinerary & { hotel?: Hotel })[]>([]);
   const [itinSpots, setItinSpots] = useState<Record<string, any[]>>({});
+  const [roomAllocations, setRoomAllocations] = useState<Record<string, Record<string, string[]>>>({});
   const [activeDay, setActiveDay] = useState(0);
 
   useEffect(() => {
@@ -60,9 +62,10 @@ export default function GroupPreviewPage() {
       const itins = itinData || [];
       setItineraries(itins);
 
-      // 3. Fetch Spots for all itineraries
+      // 3. Fetch Spots & Rooms for all itineraries
       const itinIds = itins.map(it => it.id);
       if (itinIds.length > 0) {
+        // Spots
         const { data: spotData } = await supabase
           .from('itinerary_spots')
           .select('*, spot:spots(*)')
@@ -76,6 +79,24 @@ export default function GroupPreviewPage() {
             mapping[item.itinerary_id].push(item);
           });
           setItinSpots(mapping);
+        }
+
+        // Rooms
+        const { data: roomData } = await supabase
+          .from('traveler_rooms')
+          .select('itinerary_id, room_number, traveler:travelers(full_name)')
+          .in('itinerary_id', itinIds);
+
+        if (roomData) {
+          const roomMapping: Record<string, Record<string, string[]>> = {};
+          roomData.forEach((item: any) => {
+            if (!roomMapping[item.itinerary_id]) roomMapping[item.itinerary_id] = {};
+            if (!roomMapping[item.itinerary_id][item.room_number]) roomMapping[item.itinerary_id][item.room_number] = [];
+            if (item.traveler?.full_name) {
+              roomMapping[item.itinerary_id][item.room_number].push(item.traveler.full_name);
+            }
+          });
+          setRoomAllocations(roomMapping);
         }
       }
     } catch (error) {
@@ -99,13 +120,8 @@ export default function GroupPreviewPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-white pb-24">
       {/* Mobile-First Header */}
-      <div className="relative h-64 overflow-hidden">
-        {currentItin?.hotel?.image_url ? (
-          <img src={currentItin.hotel.image_url} alt="" className="w-full h-full object-cover opacity-50" />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-blue-900 to-slate-900"></div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent"></div>
+      <div className="relative h-64 overflow-hidden bg-gradient-to-br from-blue-900 to-slate-900">
+        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20"></div>
         <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between">
           <div>
             <div className="flex items-center gap-2 mb-2">
@@ -248,6 +264,12 @@ export default function GroupPreviewPage() {
             </div>
             
             <div className="bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden">
+              {currentItin.hotel.image_url && (
+                <div className="h-64 w-full relative">
+                  <img src={currentItin.hotel.image_url} alt={currentItin.hotel.name} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent opacity-60"></div>
+                </div>
+              )}
               <div className="p-8">
                 <h3 className="text-2xl font-black mb-2">{currentItin.hotel.name}</h3>
                 <p className="text-slate-500 font-bold text-sm mb-6">{currentItin.hotel.address}</p>
@@ -290,6 +312,26 @@ export default function GroupPreviewPage() {
                     </a>
                   )}
                 </div>
+
+                {/* Room Allocation */}
+                {roomAllocations[currentItin.id] && Object.keys(roomAllocations[currentItin.id]).length > 0 && (
+                  <div className="mt-8 pt-8 border-t border-slate-800">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Key className="w-5 h-5 text-blue-500" />
+                      <h4 className="font-black text-lg">房號分配</h4>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {Object.entries(roomAllocations[currentItin.id]).sort((a, b) => a[0].localeCompare(b[0])).map(([room, names]) => (
+                        <div key={room} className="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                          <div className="text-blue-500 font-black text-lg mb-1">{room}</div>
+                          <div className="text-xs text-slate-400 font-medium leading-relaxed">
+                            {names.join('、')}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

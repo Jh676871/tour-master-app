@@ -30,7 +30,8 @@ import {
   Navigation,
   UtensilsCrossed,
   LayoutList,
-  AlertTriangle
+  AlertTriangle,
+  Plane
 } from 'lucide-react';
 import Link from 'next/link';
 import { Group, Hotel, Itinerary, Traveler, TravelerRoom, Spot } from '@/types/database';
@@ -483,6 +484,18 @@ export default function GroupEditPage() {
     setSaving(true);
     setMessage(null);
     try {
+      // 0. Update Group Info (Flight)
+      if (group) {
+        const { error: groupError } = await supabase
+          .from('groups')
+          .update({
+            flight_number: group.flight_number,
+            departure_date: group.departure_date
+          })
+          .eq('id', group.id);
+        if (groupError) throw groupError;
+      }
+
       // 1. Update Itineraries
       for (const itin of itineraries) {
         const { hotel, ...itinData } = itin as any; // Remove joined hotel object
@@ -714,6 +727,38 @@ export default function GroupEditPage() {
             <span className="font-bold">{message.text}</span>
           </div>
         )}
+
+        {/* Group Basic Info & Flight */}
+        <section className="bg-slate-900 rounded-[2.5rem] border-2 border-slate-800 p-8 shadow-xl mb-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="bg-blue-600/20 p-3 rounded-2xl">
+              <Plane className="w-6 h-6 text-blue-500" />
+            </div>
+            <h2 className="text-2xl font-black tracking-tight">航班與基本資訊</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-xs font-black text-slate-500 uppercase tracking-widest pl-1">航班號碼 (Flight No.)</label>
+              <input
+                type="text"
+                value={group?.flight_number || ''}
+                onChange={(e) => group && setGroup({ ...group, flight_number: e.target.value })}
+                placeholder="e.g. CI100"
+                className="w-full bg-slate-950 border-2 border-slate-800 rounded-xl px-4 py-3 font-bold focus:border-blue-500 outline-none transition-all uppercase"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-black text-slate-500 uppercase tracking-widest pl-1">起飛時間 (Departure Time)</label>
+              <input
+                type="datetime-local"
+                value={group?.departure_date ? new Date(group.departure_date).toISOString().slice(0, 16) : ''}
+                onChange={(e) => group && setGroup({ ...group, departure_date: new Date(e.target.value).toISOString() })}
+                className="w-full bg-slate-950 border-2 border-slate-800 rounded-xl px-4 py-3 font-bold focus:border-blue-500 outline-none transition-all"
+              />
+            </div>
+          </div>
+        </section>
 
         {/* Day Selector Tabs */}
         <div className="flex gap-2 mb-8 overflow-x-auto pb-2 scrollbar-hide">
