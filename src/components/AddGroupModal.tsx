@@ -19,6 +19,8 @@ const AddGroupModal: React.FC<AddGroupModalProps> = ({ isOpen, onClose, onSucces
     start_date: '',
     end_date: '',
     destination_country: 'Japan', // Default
+    flight_number: '',
+    departure_time: '',
   });
 
   const COUNTRIES = [
@@ -50,6 +52,8 @@ const AddGroupModal: React.FC<AddGroupModalProps> = ({ isOpen, onClose, onSucces
             start_date: formData.start_date, 
             end_date: formData.end_date,
             destination_country: formData.destination_country,
+            flight_number: formData.flight_number,
+            departure_time: formData.departure_time,
             group_code: groupCode
           }
         ])
@@ -127,6 +131,28 @@ const AddGroupModal: React.FC<AddGroupModalProps> = ({ isOpen, onClose, onSucces
                 <option key={c.code} value={c.code}>{c.name}</option>
               ))}
             </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="block text-xs font-black text-slate-500 uppercase tracking-widest ml-1">航班編號</label>
+              <input 
+                type="text" 
+                placeholder="例如：BR132"
+                value={formData.flight_number}
+                onChange={(e) => setFormData({...formData, flight_number: e.target.value})}
+                className="w-full px-6 py-4 bg-slate-950 border-2 border-slate-800 rounded-2xl focus:outline-none focus:border-blue-500 text-lg font-bold text-white transition-all placeholder:text-slate-700 shadow-inner"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-xs font-black text-slate-500 uppercase tracking-widest ml-1">起飛時間</label>
+              <input 
+                type="time" 
+                value={formData.departure_time}
+                onChange={(e) => setFormData({...formData, departure_time: e.target.value})}
+                className="w-full px-6 py-4 bg-slate-950 border-2 border-slate-800 rounded-2xl focus:outline-none focus:border-blue-500 text-lg font-bold text-white transition-all shadow-inner [color-scheme:dark]"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-6">
