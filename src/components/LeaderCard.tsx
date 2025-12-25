@@ -160,7 +160,7 @@ export default function LeaderCard({
         {showQr && contactUrl && (
           <div className="mt-4 p-4 bg-white border-2 border-slate-100 rounded-xl flex flex-col items-center animate-in zoom-in-95 duration-200">
             <QRCodeSVG value={contactUrl} size={180} />
-            <p className="mt-3 text-xs text-slate-500 font-medium">掃描上方 QR Code 加入聯絡人</p>
+            <p className="mt-3 text-xs text-slate-500 font-medium">掃描上方 QR Code 撥打電話給領隊</p>
           </div>
         )}
       </div>
