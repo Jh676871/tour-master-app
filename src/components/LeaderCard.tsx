@@ -27,7 +27,7 @@ export default function LeaderCard({
 
   if (!leader_name) return null;
 
-  const handleDownloadVcf = () => {
+  const handleDownloadVcf = async () => {
     const vcfContent = [
       'BEGIN:VCARD',
       'VERSION:3.0',
@@ -38,14 +38,37 @@ export default function LeaderCard({
       'END:VCARD'
     ].join('\n');
 
-    const blob = new Blob([vcfContent], { type: 'text/vcard;charset=utf-8' });
+    // Add BOM for UTF-8 support
+    const blob = new Blob(['\uFEFF' + vcfContent], { type: 'text/vcard;charset=utf-8' });
+
+    try {
+      // Try Web Share API (Mobile friendly)
+      // Check if the browser supports sharing files
+      const file = new File([blob], `${leader_name || 'leader'}.vcf`, { type: 'text/vcard' });
+      
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: '領隊聯絡資訊',
+          text: `這是領隊 ${leader_name} 的聯絡資訊`,
+        });
+        return;
+      }
+    } catch (error) {
+      console.log('Web Share API failed or not supported, falling back to download:', error);
+    }
+
+    // Fallback: Standard Download
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `${leader_name}.vcf`);
+    link.setAttribute('download', `${leader_name || 'leader'}.vcf`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    
+    // Cleanup
+    setTimeout(() => URL.revokeObjectURL(url), 100);
   };
 
   const contactUrl = `tel:${leader_phone}`;
