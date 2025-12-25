@@ -23,13 +23,39 @@ import {
   Map as MapIcon,
   Users,
   UtensilsCrossed,
-  Clock
+  Clock,
+  QrCode
 } from 'lucide-react';
 import { Traveler, Group, Itinerary, Hotel } from '@/types/database';
 import TaxiMode from '@/components/TaxiMode';
+import { QRCodeSVG } from 'qrcode.react';
 
 import LeaderCard from '@/components/LeaderCard';
 import { useSearchParams } from 'next/navigation';
+
+// Helper to parse wifi info
+const parseWifiInfo = (info: string) => {
+  if (!info) return null;
+  
+  // Try to find common patterns
+  // Pattern 1: "ID: xxx PW: yyy" or similar
+  const idMatch = info.match(/(?:ID|SSID)\s*[:：]\s*([^\s\/]+)/i);
+  const pwMatch = info.match(/(?:PW|PASS|PASSWORD|密碼)\s*[:：]\s*([^\s]+)/i);
+
+  if (idMatch && pwMatch) {
+    return { ssid: idMatch[1], password: pwMatch[1] };
+  }
+
+  // Pattern 2: Split by / or newline if it looks like 2 parts
+  const parts = info.split(/[\/\n]/).map(s => s.trim()).filter(Boolean);
+  if (parts.length === 2) {
+    // Assume first is ID, second is PW
+    // Check if parts[0] looks like ID (no spaces usually, but SSID can have spaces)
+    return { ssid: parts[0], password: parts[1] };
+  }
+
+  return null;
+};
 
 function TravelerContent() {
   const searchParams = useSearchParams();
@@ -57,6 +83,7 @@ function TravelerContent() {
   });
   const [error, setError] = useState<string | null>(null);
   const [sosLoading, setSosLoading] = useState(false);
+  const [showWifiQr, setShowWifiQr] = useState(false);
 
   const triggerSOS = async () => {
     if (!traveler) return;
@@ -626,16 +653,43 @@ function TravelerContent() {
                        </div>
                        <div className="flex-1">
                          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">WI-FI PASSWORD</p>
-                         <div className="flex items-center gap-3">
-                           <p className="text-xl font-black text-white">{currentItinerary.hotel.wifi_info || '無資訊'}</p>
-                           {currentItinerary.hotel.wifi_info && (
-                             <button 
-                               onClick={() => copyToClipboard(currentItinerary.hotel.wifi_info!)}
-                               className="p-2 hover:bg-slate-800 rounded-full transition-colors text-slate-400"
-                             >
-                               {copied ? <CheckCircle2 size={20} className="text-green-500" /> : <Copy size={20} />}
-                             </button>
-                           )}
+                         <div className="flex flex-col gap-2">
+                           <div className="flex items-center gap-3">
+                             <p className="text-xl font-black text-white">{currentItinerary.hotel.wifi_info || '無資訊'}</p>
+                             {currentItinerary.hotel.wifi_info && (
+                               <div className="flex gap-1">
+                                 <button 
+                                   onClick={() => copyToClipboard(currentItinerary.hotel.wifi_info!)}
+                                   className="p-2 hover:bg-slate-800 rounded-full transition-colors text-slate-400"
+                                 >
+                                   {copied ? <CheckCircle2 size={20} className="text-green-500" /> : <Copy size={20} />}
+                                 </button>
+                                 
+                                 {parseWifiInfo(currentItinerary.hotel.wifi_info) && (
+                                   <button 
+                                     onClick={() => setShowWifiQr(!showWifiQr)}
+                                     className={`p-2 hover:bg-slate-800 rounded-full transition-colors ${showWifiQr ? 'text-blue-500' : 'text-slate-400'}`}
+                                   >
+                                     <QrCode size={20} />
+                                   </button>
+                                 )}
+                               </div>
+                             )}
+                           </div>
+
+                           {/* WiFi QR Code */}
+                           {showWifiQr && currentItinerary.hotel.wifi_info && (() => {
+                             const wifiData = parseWifiInfo(currentItinerary.hotel.wifi_info);
+                             if (!wifiData) return null;
+                             const wifiString = `WIFI:T:WPA;S:${wifiData.ssid};P:${wifiData.password};;`;
+                             
+                             return (
+                               <div className="bg-white p-4 rounded-xl self-start animate-in fade-in zoom-in duration-200">
+                                 <QRCodeSVG value={wifiString} size={150} />
+                                 <p className="text-slate-500 text-xs font-bold text-center mt-2">掃描自動連線</p>
+                               </div>
+                             );
+                           })()}
                          </div>
                        </div>
                      </div>

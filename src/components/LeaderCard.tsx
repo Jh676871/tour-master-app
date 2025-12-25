@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { User, Phone, Download, MessageCircle, X, ChevronDown, ChevronUp, AlertTriangle, Loader2 } from 'lucide-react';
+import { User, Phone, Download, MessageCircle, X, ChevronDown, ChevronUp, AlertTriangle, Loader2, MapPin } from 'lucide-react';
 import { Group } from '@/types/database';
 
 interface LeaderCardProps {
@@ -24,8 +24,35 @@ export default function LeaderCard({
 }: LeaderCardProps) {
   const [showQr, setShowQr] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
 
   if (!leader_name) return null;
+
+  const handleSendLocation = () => {
+    setLocationLoading(true);
+    if (!navigator.geolocation) {
+      alert('您的裝置不支援地理位置功能');
+      setLocationLoading(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const mapUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
+        const message = `領隊救命！我迷路了，這是我目前的位置：\n${mapUrl}`;
+        const lineUrl = `https://line.me/R/msg/text/?${encodeURIComponent(message)}`;
+        window.location.href = lineUrl;
+        setLocationLoading(false);
+      },
+      (error) => {
+        console.error('Error getting location:', error);
+        alert('無法獲取您的位置，請確認已開啟定位權限');
+        setLocationLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
 
   const handleDownloadVcf = async () => {
     const vcfContent = [
@@ -191,6 +218,20 @@ export default function LeaderCard({
             <p className="mt-3 text-xs text-slate-500 font-medium">掃描上方 QR Code 撥打電話給領隊</p>
           </div>
         )}
+
+        {/* Send Location Button */}
+        <button
+          onClick={handleSendLocation}
+          disabled={locationLoading}
+          className="w-full mt-4 bg-orange-500 hover:bg-orange-600 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-orange-500/20"
+        >
+          {locationLoading ? (
+            <Loader2 size={20} className="animate-spin" />
+          ) : (
+            <MapPin size={20} />
+          )}
+          {locationLoading ? '定位中...' : '我找不到路，傳送位置給領隊'}
+        </button>
       </div>
       )}
     </div>
