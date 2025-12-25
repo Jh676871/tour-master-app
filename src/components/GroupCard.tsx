@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, Calendar, MapPin, ChevronRight, Wallet } from 'lucide-react';
+import { Users, Calendar, MapPin, ChevronRight, Wallet, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
 interface GroupCardProps {
@@ -9,9 +9,10 @@ interface GroupCardProps {
   endDate: string;
   memberCount: number;
   location: string;
+  onDelete?: (id: string | number) => void;
 }
 
-const GroupCard: React.FC<GroupCardProps> = ({ id, name, startDate, endDate, memberCount, location }) => {
+const GroupCard: React.FC<GroupCardProps> = ({ id, name, startDate, endDate, memberCount, location, onDelete }) => {
   return (
     <div className="bg-slate-800 rounded-[2rem] border-2 border-slate-700 p-8 hover:border-blue-500/50 transition-all group shadow-xl relative overflow-hidden">
       {/* Background Glow */}
@@ -61,7 +62,19 @@ const GroupCard: React.FC<GroupCardProps> = ({ id, name, startDate, endDate, mem
           </div>
         </div>
         
-        <Link 
+        <div className="flex items-center">
+          <button 
+            onClick={(e) => {
+              e.preventDefault();
+              if (onDelete) onDelete(id);
+            }}
+            title="刪除團體"
+            className="flex items-center justify-center w-10 h-10 bg-slate-900 hover:bg-red-600 text-slate-400 hover:text-white rounded-xl font-black transition-all border border-slate-700 hover:border-red-400 mr-2"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+          
+          <Link 
             href={`/groups/${id}/ledger`}
             title="財務管理"
             className="flex items-center justify-center w-10 h-10 bg-slate-900 hover:bg-green-600 text-slate-400 hover:text-white rounded-xl font-black transition-all border border-slate-700 hover:border-green-400 mr-2"
@@ -70,11 +83,12 @@ const GroupCard: React.FC<GroupCardProps> = ({ id, name, startDate, endDate, mem
           </Link>
           <Link 
             href={`/groups/${id}`}
-          className="flex items-center gap-2 bg-slate-900 hover:bg-blue-600 text-slate-400 hover:text-white px-5 py-2.5 rounded-xl font-black transition-all border border-slate-700 hover:border-blue-400 uppercase tracking-widest text-[10px]"
-        >
-          <span>進入團務</span>
-          <ChevronRight className="w-4 h-4" />
-        </Link>
+            className="flex items-center gap-2 bg-slate-900 hover:bg-blue-600 text-slate-400 hover:text-white px-5 py-2.5 rounded-xl font-black transition-all border border-slate-700 hover:border-blue-400 uppercase tracking-widest text-[10px]"
+          >
+            <span>進入團務</span>
+            <ChevronRight className="w-4 h-4" />
+          </Link>
+        </div>
       </div>
     </div>
   );

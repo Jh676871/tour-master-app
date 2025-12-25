@@ -63,7 +63,14 @@ const AddGroupModal: React.FC<AddGroupModalProps> = ({ isOpen, onClose, onSucces
         throw error;
       }
       
-      setFormData({ name: '', start_date: '', end_date: '', destination_country: 'Japan' });
+      setFormData({ 
+        name: '', 
+        start_date: '', 
+        end_date: '', 
+        destination_country: 'Japan',
+        flight_number: '',
+        departure_time: ''
+      });
       onClose();
       if (onSuccess) onSuccess();
       

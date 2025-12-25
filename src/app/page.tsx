@@ -6,11 +6,15 @@ import { Plus, Navigation, Users, CheckSquare, LayoutGrid, FileText, Loader2, Ho
 import Link from 'next/link';
 import GroupCard from '@/components/GroupCard';
 import AddGroupModal from '@/components/AddGroupModal';
+import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 import { supabase } from '@/lib/supabase';
 import { Group } from '@/types/database';
 
 export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [groups, setGroups] = useState<(Group & { memberCount: number })[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -76,6 +80,39 @@ export default function Home() {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteGroup = (id: string | number) => {
+    setDeleteTargetId(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDeleteGroup = async () => {
+    if (!deleteTargetId) return;
+    
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('groups')
+        .delete()
+        .eq('id', deleteTargetId);
+
+      if (error) {
+        console.error('Error deleting group:', error);
+        alert('刪除失敗：' + error.message);
+        return;
+      }
+
+      // Optimistically update UI
+      setGroups(prev => prev.filter(g => g.id !== deleteTargetId));
+      setIsDeleteModalOpen(false);
+      setDeleteTargetId(null);
+    } catch (err: any) {
+      console.error('Exception deleting group:', err);
+      alert('刪除發生錯誤');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -225,6 +262,7 @@ export default function Home() {
                 endDate={group.end_date}
                 memberCount={group.memberCount}
                 location={group.name.split(' ')[0]} // Use first word of name as location for now
+                onDelete={handleDeleteGroup}
               />
             ))
           )}
@@ -261,6 +299,13 @@ export default function Home() {
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         onSuccess={fetchGroups}
+      />
+      
+      <DeleteConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={confirmDeleteGroup}
+        loading={isDeleting}
       />
     </main>
   );
