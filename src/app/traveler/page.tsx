@@ -635,9 +635,14 @@ function TravelerContent() {
 
                     {/* Address */}
                     <div className="flex gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center shrink-0 text-blue-500">
+                      <a
+                        href={currentItinerary.hotel.google_map_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((currentItinerary.hotel.local_name || currentItinerary.hotel.name) + ' ' + (currentItinerary.hotel.local_address || currentItinerary.hotel.address))}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center shrink-0 text-blue-500 hover:bg-blue-500/20 transition-colors cursor-pointer"
+                      >
                         <MapPin size={24} />
-                      </div>
+                      </a>
                       <div className="flex-1">
                         <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">HOTEL ADDRESS</p>
                         <p className="text-lg font-bold text-white leading-relaxed mb-1">
@@ -660,9 +665,12 @@ function TravelerContent() {
 
                     {/* Phone */}
                     <div className="flex gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-green-500/10 flex items-center justify-center shrink-0 text-green-500">
+                      <a
+                        href={`tel:${currentItinerary.hotel.phone}`}
+                        className="w-12 h-12 rounded-2xl bg-green-500/10 flex items-center justify-center shrink-0 text-green-500 hover:bg-green-500/20 transition-colors cursor-pointer"
+                      >
                         <Phone size={24} />
-                      </div>
+                      </a>
                       <div className="flex-1">
                         <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">FRONT DESK</p>
                         <a href={`tel:${currentItinerary.hotel.phone}`} className="text-xl font-black text-white hover:text-green-400 transition-colors">
