@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CarTaxiFront, X, Map, Phone, User } from 'lucide-react';
+import { CarTaxiFront, X, Map, Phone, User, Volume2 } from 'lucide-react';
 import { Hotel } from '@/types/database';
 
 interface TaxiModeProps {
@@ -16,6 +16,21 @@ export default function TaxiMode({ hotel, leaderPhone }: TaxiModeProps) {
 
   const handleClose = () => {
     setIsOpen(false);
+    window.speechSynthesis.cancel(); // Stop speaking when closed
+  };
+
+  const handleSpeak = () => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel(); // Stop any current speech
+      const text = `${hotel.local_name || hotel.name}。${hotel.local_address || hotel.address}`;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.8; // Slower for clarity
+      utterance.pitch = 1;
+      utterance.volume = 1;
+      window.speechSynthesis.speak(utterance);
+    } else {
+      alert('您的裝置不支援語音朗讀功能');
+    }
   };
 
   if (!hotel) return null;
@@ -68,6 +83,15 @@ export default function TaxiMode({ hotel, leaderPhone }: TaxiModeProps) {
 
           {/* Action Buttons */}
           <div className="mt-8 space-y-4 pb-8">
+            {/* Speak Address */}
+            <button
+              onClick={handleSpeak}
+              className="flex items-center justify-center gap-3 w-full bg-purple-600 hover:bg-purple-700 text-white py-4 rounded-xl text-xl font-bold"
+            >
+              <Volume2 size={28} />
+              朗讀地址給司機聽
+            </button>
+
             {/* Google Map */}
             <a
               href={hotel.google_map_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((hotel.local_name || hotel.name) + ' ' + (hotel.local_address || hotel.address))}`}
