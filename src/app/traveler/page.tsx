@@ -22,14 +22,17 @@ import {
   StickyNote,
   Map as MapIcon,
   Users,
-  UtensilsCrossed
+  UtensilsCrossed,
+  Clock
 } from 'lucide-react';
 import { Traveler, Group, Itinerary, Hotel } from '@/types/database';
+import TaxiMode from '@/components/TaxiMode';
 
 export default function TravelerLIFFPage() {
   const [liffLoading, setLiffLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [traveler, setTraveler] = useState<Traveler | null>(null);
+  const [group, setGroup] = useState<Group | null>(null);
   const [itineraries, setItineraries] = useState<(Itinerary & { hotel: Hotel | null })[]>([]);
   const [itinSpots, setItinSpots] = useState<Record<string, any[]>>({});
   const [currentItinerary, setCurrentItinerary] = useState<(Itinerary & { hotel: Hotel }) | null>(null);
@@ -138,6 +141,14 @@ export default function TravelerLIFFPage() {
 
   const fetchTodayInfo = async (travelerId: string, groupId: string | null, signal?: AbortSignal) => {
     if (!groupId) return;
+
+    // Fetch Group Info
+    const { data: groupData } = await supabase
+      .from('groups')
+      .select('*')
+      .eq('id', groupId)
+      .single();
+    if (groupData) setGroup(groupData);
 
     const today = new Date().toISOString().split('T')[0];
     
@@ -503,6 +514,13 @@ export default function TravelerLIFFPage() {
           </div>
         </div>
 
+        {/* Taxi Mode */}
+        {currentItinerary?.hotel && (
+          <div className="w-full">
+             <TaxiMode hotel={currentItinerary.hotel} leaderPhone={group?.leader_phone} />
+          </div>
+        )}
+
         {/* Schedule Times */}
         {currentItinerary && (
           <div className="grid grid-cols-2 gap-4">
@@ -730,22 +748,4 @@ export default function TravelerLIFFPage() {
   );
 }
 
-function Clock(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="12" r="10" />
-      <polyline points="12 6 12 12 16 14" />
-    </svg>
-  );
-}
+

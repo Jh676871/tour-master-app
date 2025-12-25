@@ -10,6 +10,8 @@ export interface Hotel {
   guide_notes?: string;
   image_url?: string;
   nearby_medical?: string;
+  local_name?: string;
+  local_address?: string;
   created_at: string;
 }
 
@@ -22,6 +24,8 @@ export interface Group {
   flight_number?: string;
   departure_time?: string;
   destination_country?: string;
+  leader_name?: string;
+  leader_phone?: string;
   created_at: string;
 }
 

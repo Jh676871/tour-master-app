@@ -490,7 +490,7 @@ export default function GroupEditPage() {
           .from('groups')
           .update({
             flight_number: group.flight_number,
-            departure_date: group.departure_date
+            departure_time: group.departure_time
           })
           .eq('id', group.id);
         if (groupError) throw groupError;
@@ -752,8 +752,8 @@ export default function GroupEditPage() {
               <label className="text-xs font-black text-slate-500 uppercase tracking-widest pl-1">起飛時間 (Departure Time)</label>
               <input
                 type="datetime-local"
-                value={group?.departure_date ? new Date(group.departure_date).toISOString().slice(0, 16) : ''}
-                onChange={(e) => group && setGroup({ ...group, departure_date: new Date(e.target.value).toISOString() })}
+                value={group?.departure_time ? new Date(group.departure_time).toISOString().slice(0, 16) : ''}
+                onChange={(e) => group && setGroup({ ...group, departure_time: new Date(e.target.value).toISOString() })}
                 className="w-full bg-slate-950 border-2 border-slate-800 rounded-xl px-4 py-3 font-bold focus:border-blue-500 outline-none transition-all"
               />
             </div>

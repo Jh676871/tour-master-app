@@ -77,8 +77,8 @@ export default function GroupDashboard() {
         <section>
           <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 px-1">Flight Status</h2>
           <FlightStatusCard 
-            flightNumber={group.flight_number} 
-            departureDate={group.departure_date} 
+            flightNumber={group.flight_number}
+            departureDate={group.departure_time}
           />
         </section>
 
