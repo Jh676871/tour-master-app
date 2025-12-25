@@ -123,15 +123,20 @@ export default function LeaderCard({
 
         {/* LINE */}
         {leader_line_id && (
-          <div className="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 transition-colors">
+          <a 
+            href={`https://line.me/ti/p/~${leader_line_id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 transition-colors"
+          >
             <div className="w-10 h-10 rounded-full bg-[#06C755]/10 flex items-center justify-center text-[#06C755] shrink-0">
               <MessageCircle size={20} />
             </div>
             <div>
-              <div className="text-xs text-slate-500">LINE ID</div>
+              <div className="text-xs text-slate-500">LINE ID (點擊加入LINE)</div>
               <div className="font-bold text-slate-800">{leader_line_id}</div>
             </div>
-          </div>
+          </a>
         )}
 
         <div className="grid grid-cols-2 gap-3 pt-2">
